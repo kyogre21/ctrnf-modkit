@@ -17,11 +17,14 @@ Confort : les indices d'Aku Aku peuvent être passés.
 Il faut
 -------
 - le jeu (version 01.21) installé avec le port PC ;
-- Python 3.10 ou plus récent (https://www.python.org).
+- rien d'autre : le programme CTRNF-Randomizer.exe contient tout.
 
 Utilisation
 -----------
-1. Double-cliquer sur « Lancer le randomizer.bat ».
+1. Télécharger CTRNF-Randomizer.exe dans la page « Releases » du dépôt
+   (https://github.com/kyogre21/ctrnf-randomizer/releases) et le lancer.
+   Windows peut afficher « Windows a protégé votre ordinateur » (programme non signé) : cliquer sur
+   « Informations complémentaires » puis « Exécuter quand même ».
 2. Choisir le dossier du port (celui qui contient bin, patches et out). La fenêtre vérifie la version du jeu.
 3. Taper une graine (ou la laisser vide), régler les options dans les onglets (la souris sur une option
    affiche son aide).
@@ -31,7 +34,8 @@ Utilisation
 
 Pour rejouer au jeu normal : supprimer patches\Randomizer.xml dans le dossier du port.
 
-Sans fenêtre : python -m ctrnf_rando --help
+Avec Python 3.10 ou plus récent installé, on peut aussi lancer le code source : « Lancer le randomizer.bat »,
+ou sans fenêtre : python -m ctrnf_rando --help
 
 Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 
