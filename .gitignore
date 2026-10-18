@@ -1,0 +1,14 @@
+# Graines générées
+seeds/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Jamais de fichiers du jeu ni de sauvegardes dans ce dépôt
+*.pak
+*.igz
+*.sav
+*.pkg
+eboot.bin
