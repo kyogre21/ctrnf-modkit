@@ -84,11 +84,14 @@ COND_RACE, COND_BOSS, COND_ARENA, COND_CUP = 1, 2, 3, 4
 # Le monde d'un portail est noté dans la liste des portails du hub (CHUBZoneList, vtable HUBZONE_LIST, CHUBZone +0x38 ;
 # il décide des objets flottants montrés et de la mini-carte au retour d'une course) : AREATABLE[n° de portail] =
 # monde de son nouvel emplacement (0 = inchangé).
-# La mini-carte a 5 régions (une par monde) qui listent les entités HubZone à montrer : MINIMAP refait ces listes
-# d'après la position actuelle de chaque entité (SPOTTABLE : position de l'entité HubZone de chaque emplacement et son
-# monde ; 16 octets par ligne, fin = monde 0). Ces entités sont dans d'autres fichiers : le jeu peut ne compléter les
-# listes que plus tard, dans RESOLVE (renvois entre fichiers). MINIMAP est donc appelée par CODE11 et par une
-# enveloppe de RESOLVE ; elle ne touche à rien tant qu'une entrée n'est pas encore complétée.
+# La mini-carte a 5 régions (une par monde) qui listent les entités HubZone à montrer : MINIMAP (appelée par CODE11)
+# refait ces listes pour que chaque région montre les portails posés chez elle. Ces entités sont dans d'autres
+# fichiers : tant qu'elles ne sont pas chargées, l'entrée vaut bit 63 + n° du renvoi (MINIMAP_INDEX : portail de
+# chaque n°) et le jeu la complète plus tard d'après ce n° ; MINIMAP échange alors les n° (IDXTABLE[n°] = monde de
+# l'emplacement du portail). Une entrée déjà complétée est classée d'après sa position (SPOTTABLE : position de
+# l'entité HubZone de chaque emplacement et son monde ; 16 octets par ligne, fin = monde 0). Si les deux cas se
+# mélangent, les portails déjà complétés sont remis en attente (fonction du jeu 0x154ff10) et tous sont échangés par
+# leur n°.
 IGZ_FINISH = 0x154b330
 HUBZONE_LIST = 0x274ea00
 WORLDS = [1] * 6 + [3] * 5 + [4] * 6 + [5] * 6 + [3] + [2] * 8  # monde d'origine de chaque n° de portail
@@ -330,21 +333,32 @@ CODE11, AREATABLE, PADTABLE, PADTABLE_ROWS, SPOTTABLE = 0x2320000, 0x2320380, 0x
 JUMP_IGZ = bytes.fromhex("e9cb4cdd00909090")
 SIG_IGZ = "55 48 89 e5 41 57 41 56 41 55 41 54 53 48 83 ec 78 48 89 fb e8 37 1f 00 00 85 c0 0f 85 13 09 00"
 MINIMAP_BYTES = bytes.fromhex(
-    "5341544155415641574881ec30020000c7042400000000488b87b80000004885c00f8498010000448b60104c8b68"
-    "204d85ed0f84870100004531f64539e6733c4b8b7cf50041ffc64885ff74ee488b07488d15d9e132004839d0740c"
-    "488d1525e432004839d075d38b042483f80573cb48897cc408ffc0890424ebbf4531d2443b142473414a8b7cd408"
-    "41ffc2488b7f304885ff74e98b4f10488b77204885f674dd85c974d9ffc9488b14ce4885d274f10f880801000048"
-    "81fa000001000f82fb000000ebdc4531c94531d2443b142473514a8b7cd40841ffc2488b7f304885ff74e98b4f10"
-    "488b77204885f674dd85c974d9ffc9488b14ce4885d274f1e89100000085c074e84183f92073e24589c849c1e004"
-    "4a89540430428944043841ffc1ebcc4531d2443b14240f838f0000004a8b7cd40841ffc2488b7f304885ff74e58b"
-    "4f10488b77204885f674d985c974d5ffc9488b14ce4885d274f1e83300000085c074e84531db4539cb73e04589d8"
-    "49c1e004463954043875144a8b440430488904ce42c744043800000000ebbe41ffc3ebd44c8d0565fcffff418b40"
-    "0c85c074194d8b184c3b5a20750a458b5808443b5a2874084983c010ebdf31c0c34881c430020000415f415e415d"
-    "415c5bc35341544883ec084889fbe8160000004989c44889dfe816feffff4c89e04883c408415c5bc3554889e541"
-    "574156e9569922ff")
-RESOLVE, MINIMAP = 0x154ad50, 0x2321200
-JUMP_RESOLVE = bytes.fromhex("e97b66dd00909090")
-SIG_RESOLVE = "55 48 89 e5 41 57 41 56 41 55 41 54 53 48 83 ec 28 48 8b 05 30 c3 2b 01 49 89 fc 48 8b 00 48 89"
+    "5341544155415641574881ec400200004989ffc7042400000000488b87b80000004885c00f848d020000448b6010"
+    "4c8b68204d85ed0f847c0200004531f64539e6733c4b8b7cf50041ffc64885ff74ee488b07488d15d6e132004839"
+    "d0740c488d1522e432004839d075d38b042483f80573cb48897cc408ffc0890424ebbf4531e4443b24240f83fe00"
+    "00004a8b7ce40841ffc4488b7f304885ff74e5448b77104c8b6f204d85ed74d84585f674d341ffce4b8b44f50048"
+    "85c079ee480fbaf03f4883f84073e34c8d05f2feffff41803c000074d54531e4443b24240f83a80000004a8b7ce4"
+    "0841ffc4488b7f304885ff74e5448b77104c8b6f204d85ed74d84585f674d341ffce4b8b54f5004881fa00000100"
+    "72ea4885d278e5498b47684885c074dc8b480c83f9407605b940000000488b70204885f674c64c8d057ffeffff85"
+    "c97ebbffc9483b14ce75f441803c080074ac480fbae93f4b8d44f5004889084889842430020000498dbf88000000"
+    "488db42430020000488d942438020000e88beb22ffe976ffffff4531c94531d2443b1424734c4a8b7cd40841ffc2"
+    "488b7f304885ff74e98b4f10488b77204885f674dd85c974d9ffc9488b14cee89600000085c074ed4183f92073e7"
+    "4589c849c1e0044a89540430428944043841ffc1ebd14531d2443b14240f83c80000004a8b7cd40841ffc2488b7f"
+    "304885ff74e58b4f10488b77204885f674d985c974d5ffc9488b14cee83d00000085c074ed25000100004409d089"
+    "c34531db4539cb73db4589d849c1e00442395c043875144a8b440430488904ce42c744043800000000ebb941ffc3"
+    "ebd44885d2745778314881fa00000100724c4c8d0591fbffff418b400c85c0743f4d8b184c3b5a20750a458b5808"
+    "443b5a28742c4983c010ebdf4889d0480fbaf03f4883f84073164c8d051bfdffff410fb6040085c074080d000100"
+    "00c331c0c34881c440020000415f415e415d415c5bc3")
+IDXTABLE, IDX_COUNT, MINIMAP = 0x23211c0, 64, 0x2321200
+MINIMAP_INDEX = {  # n° de renvoi de la mini-carte : portail
+    1: "t111_crash_cove", 2: "t113_mystery_caves", 3: "t112_roos_tubes", 4: "t114_sewer_speedway",
+    5: "a115_skull_rock", 8: "t122_turbo_track", 9: "t121_slide_coliseum", 10: "cup_blue", 11: "cup_red",
+    12: "cup_yellow", 13: "cup_purple", 14: "cup_green", 17: "t134_dingo_canyon", 18: "t131_coco_park",
+    19: "t133_papus_pyramid", 20: "t132_tiger_temple", 21: "a135_rampage_ruins", 23: "t141_blizzard_bluff",
+    25: "t142_dragon_mines", 26: "t143_polar_pass", 27: "a145_rocky_road", 28: "t144_tiny_arena",
+    31: "t152_cortex_castle", 32: "t153_hot_air_skyway", 33: "t151_ngin_labs", 34: "a155_nitro_court",
+    35: "t154_oxide_station",
+}
 SPOTS = {  # emplacement : position de HubZone, Teleporter, SpawnPoint (3 flottants), cap de HubZone, de Teleporter
     "t111_crash_cove": ("388efcc6141013450000a743", "3882fcc6232b13454e577f42", "e176f2c6a4381345d6e51439",
                         "", ""),
@@ -481,6 +495,14 @@ def spot_table():
     return b"".join(bytes.fromhex(SPOTS[k][0]) + WORLDS[portal_index(k)].to_bytes(4, "little") for k in keys) + bytes(16)
 
 
+def idx_table(locations):
+    """IDXTABLE : monde de l'emplacement du portail de chaque n° de renvoi de la mini-carte (0 = pas un portail)."""
+    out = bytearray(IDX_COUNT)
+    for k, key in MINIMAP_INDEX.items():
+        out[k] = WORLDS[portal_index(locations.get(key, key))]
+    return bytes(out)
+
+
 def pad_table(locations):
     """PADTABLE d'après les emplacements de la graine ({portail: emplacement}, clés de SPOTS)."""
     rows = b""
@@ -585,8 +607,8 @@ def patch_xml(plan, rename=False, rewards=None):
     if plan.get("locations") and any(pad != spot for pad, spot in plan["locations"].items()):
         lines += (_line(CODE11, CODE11_BYTES, SIG_EMPTY) + _line(AREATABLE, area_table(plan["locations"]), SIG_EMPTY)
                   + _line(PADTABLE, pad_table(plan["locations"]), SIG_EMPTY) + _line(SPOTTABLE, spot_table(), SIG_EMPTY)
-                  + _line(MINIMAP, MINIMAP_BYTES, SIG_EMPTY) + _line(IGZ_FINISH, JUMP_IGZ, SIG_IGZ)
-                  + _line(RESOLVE, JUMP_RESOLVE, SIG_RESOLVE))
+                  + _line(IDXTABLE, idx_table(plan["locations"]), SIG_EMPTY) + _line(MINIMAP, MINIMAP_BYTES, SIG_EMPTY)
+                  + _line(IGZ_FINISH, JUMP_IGZ, SIG_IGZ))
     if plan["settings"].get("skip_hints"):
         lines += _line(CODE10, CODE10_BYTES, SIG_EMPTY) + _line(PERCENT, JUMP_PERCENT, SIG_PERCENT)
     if plan.get("cups"):
@@ -609,6 +631,6 @@ def signature_sites():
     sites = [(LOADMAP, SIG_LOADMAP), (REWARD, SIG_REWARD), (REWARDED, SIG_REWARDED), (HUBNAME, SIG_HUBNAME),
              (BANNER, SIG_BANNER), (RECALC, SIG_RECALC), (WON_CALL, SIG_WON), (MODEL_CALL, SIG_MODEL),
              (GETALL, SIG_GETALL), (CUP_CALL, SIG_CUP), (PERCENT, SIG_PERCENT),
-             (IGZ_FINISH, SIG_IGZ), (RESOLVE, SIG_RESOLVE)]
+             (IGZ_FINISH, SIG_IGZ)]
     sites += [(func, sig) for func, _, _, sig in REWARD_FUNCS + COND_FUNCS]
     return [(address, bytes.fromhex(sig.replace(" ", ""))) for address, sig in sites]
