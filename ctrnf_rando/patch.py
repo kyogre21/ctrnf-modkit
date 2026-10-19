@@ -62,7 +62,9 @@ CUPMAP = 0x23302c0  # option « coupes » : 5 × 8 octets, voir cup_map
 CODE8 = 0x233a800  # option « coupes » : détour du départ d'une coupe
 # Départ d'une coupe depuis un portail de Gem Stone Valley : l'appel en CUP_CALL charge le 1er circuit. CODE8 le
 # remplace : les 4 circuits de la coupe en cours deviennent ceux de CUPMAP (n° de coupe du jeu, place, voir
-# data.CUPS), puis la course se lance sur le premier. La gemme reste rangée sur la fiche du portail.
+# data.CUPS), puis la course se lance sur le premier. La gemme reste rangée sur la fiche du portail. Les coupes du
+# jeu ne donnent que des noms : la liste de la coupe en cours reçoit les vraies poignées des fiches de ces circuits
+# (fonction du jeu 0x14bea20), que le jeu lit entre les courses.
 CUP_CALL = 0xe692d2
 # Option « conditions » : CONDTABLE[n° de portail] (32 octets : genre, type 1, nombre 1, type 2, nombre 2 ; genre 1
 # course, 2 garage, 3 arène, 4 coupe). Course : 1 = la course, 2 = le défi CTR et la relique (une fois le trophée du
@@ -76,7 +78,8 @@ COND_TYPES = {"trophy": 2, "key": 4, "relics": 0x10, "gems": 0x20000, "token_red
 COND_RACE, COND_BOSS, COND_ARENA, COND_CUP = 1, 2, 3, 4
 # Option « emplacements » : un portail = 3 objets des cartes du hub (`maps/Octane/H100_Hub/H100_Hub_HubZone(s)_*.igz`,
 # toujours chargées avec le hub) : X_HubZone (entité de la logique : +0x20 position, +0x30 rotation dont +0x68 = cap),
-# X_Teleporter (entité qui déclenche, +0x20) et X_SpawnPoint (point d'arrivée, +0x10). Le décor reste en place. CODE11
+# X_Teleporter (entité qui déclenche, +0x20) et X_SpawnPoint (point d'arrivée, +0x10). Le socle (X_warp, entité de
+# H100_Hub_Art_Common.igz, voir WARPS) part avec eux : le tourbillon « portail ouvert » s'affiche sur lui. CODE11
 # enveloppe la fin du chargement d'un fichier IGZ (IGZ_FINISH, rdi = chargeur, liste racine en +0xb8) : chaque objet
 # de la liste racine dont la position est dans PADTABLE prend celle de son nouvel emplacement (et son cap).
 # PADTABLE : lignes de 32 octets = ancienne position, nouvelle position (12 octets chacune), cap, champ (0x20 entité,
@@ -225,13 +228,13 @@ CODE9_BYTES = bytes.fromhex(
     "aefe")
 # Option « coupes » (assemblé à CODE8) : voir CUP_CALL.
 CODE8_BYTES = bytes.fromhex(
-    "535541544155415641574883ec284989fc4989f54189d64189cf4489c589e883e81983f8050f83d8000000488d1d"
-    "8e5affff488d1cc3803bff0f84c4000000498b8424800d00004885c00f84b300000083780c040f85a9000000488b"
-    "05d7f379004885c00f8499000000488b80880100004885c00f848900000031c90fb6144b3b500c737e440fb6444b"
-    "014183f80473724c8b48204d8b0cd14d85c974654d8b49204d85c9745c4f8b0cc14d85c974534983791000744c4c"
-    "890cccffc183f90472ba488b3d4f937a004885ff7435488b0424488b7010e8453acffe4885c074234989c5498b84"
-    "24800d0000488b402031c9488b14ccf0ff02488914c8ffc183f90472ee4c89e74c89ee4489f24489f94189e84883"
-    "c428415f415e415d415c5d5be9cb3fcafe")
+    "535541544155415641574883ec284989fc4989f54189d64189cf4489c589e883e81983f8050f83f0000000488d1d"
+    "8e5affff488d1cc3803bff0f84dc000000498b8424800d00004885c00f84cb00000083780c040f85c1000000488b"
+    "05d7f379004885c00f84b1000000488b80880100004885c00f84a100000031c90fb6144b3b500c0f839200000044"
+    "0fb6444b014183f8040f83820000004c8b48204d8b0cd14d85c974754d8b49204d85c9746c4f8b0cc14d85c97463"
+    "4983791000745c4c890cccffc183f90472b231db488b3d45937a004885ff7443488b04dc488b7010e83b3acffe48"
+    "85c07431488904dcffc383fb0472d74c8b2c2431db498bbc24800d0000488b7f20488d3cdf488b34dce80c4118ff"
+    "ffc383fb0472e04c89e74c89ee4489f24489f94189e84883c428415f415e415d415c5d5be9b33fcafe")
 # Option « noms » : le détour du chargement commence par un appel à CODE3, qui renomme les
 # portails en arrivant au hub et remet les noms en le quittant (état en mémoire à STATE).
 CODE1_NOMS_BYTES = bytes.fromhex(
@@ -322,14 +325,14 @@ COND_FUNCS = [  # (fonction, son détour, saut posé à son entrée, signature)
 JUMP_PERCENT = bytes.fromhex("e98bbe3501909090")
 SIG_PERCENT = "55 48 89 e5 41 57 41 56 41 55 41 54 53 50 48 89 fb 48 8b bb c0 0d 00 00 e8 53 01 00 00 4c 8b a3"
 CODE11_BYTES = bytes.fromhex(
-    "5341544155415641574883ec604889fbe8150100004189c785c00f85f9000000488b83b80000004885c00f84e900"
-    "0000448b60104c8b68204d85ed0f84d800000031c04889e7b90c000000f348ab4531f64539e60f83b70000004b8b"
-    "7cf50041ffc64885ff74ea488b07488d158fe942004839d07459488d358303000031c98b561c85d274cb803c0c00"
-    "753b488b06483b041775328b46083b4417087529c6040c01488b460c488904178b46148944170883fa20759b488b"
-    "47304885c074928b5618895068eb8a4883c620ffc1ebb08b4f1083f9207605b920000000488b77204885f60f8468"
-    "ffffff488d159002000085c90f8459ffffffffc90fb6040a85c074ee4c8b04ce4d85c074e541894038ebdf4889df"
-    "e8e71000004489f84883c460415f415e415d415c5bc3554889e541574156e901b222ff")
-CODE11, AREATABLE, PADTABLE, PADTABLE_ROWS, SPOTTABLE = 0x2320000, 0x2320380, 0x2320400, 96, 0x2321000
+    "5341544155415641574881ec800000004889fbe8180100004189c785c00f85f9000000488b83b80000004885c00f"
+    "84e9000000448b60104c8b68204d85ed0f84d800000031c04889e7b910000000f348ab4531f64539e60f83b70000"
+    "004b8b7cf50041ffc64885ff74ea488b07488d158ce942004839d07459488d358017000031c98b561c85d274cb80"
+    "3c0c00753b488b06483b041775328b46083b4417087529c6040c01488b460c488904178b46148944170883fa2075"
+    "9b488b47304885c074928b5618895068eb8a4883c620ffc1ebb08b4f1083f9207605b920000000488b77204885f6"
+    "0f8468ffffff488d158d02000085c90f8459ffffffffc90fb6040a85c074ee4c8b04ce4d85c074e541894038ebdf"
+    "4889dfe8e41000004489f84881c480000000415f415e415d415c5bc3554889e541574156e9fbb122ff")
+CODE11, AREATABLE, PADTABLE, PADTABLE_ROWS, SPOTTABLE = 0x2320000, 0x2320380, 0x2321800, 128, 0x2321000
 JUMP_IGZ = bytes.fromhex("e9cb4cdd00909090")
 SIG_IGZ = "55 48 89 e5 41 57 41 56 41 55 41 54 53 48 83 ec 78 48 89 fb e8 37 1f 00 00 85 c0 0f 85 13 09 00"
 MINIMAP_BYTES = bytes.fromhex(
@@ -350,6 +353,14 @@ MINIMAP_BYTES = bytes.fromhex(
     "443b5a28742c4983c010ebdf4889d0480fbaf03f4883f84073164c8d051bfdffff410fb6040085c074080d000100"
     "00c331c0c34881c440020000415f415e415d415c5bc3")
 IDXTABLE, IDX_COUNT, MINIMAP = 0x23211c0, 64, 0x2321200
+# Menus de progression (liste des circuits d'un monde, menu Progression) : chaque ligne vient d'un n° de portail donné
+# par 0x1038c50 (portails d'origine du monde, appelée en ROW_CALL par le nœud getHUBZoneIndexForRaceInArea_VSC).
+# ROWMAP l'appelle puis remplace ce n° par celui du portail posé à cet endroit (ROWTABLE) : nom et icônes de la ligne
+# sont ceux du portail qu'on y voit.
+ROWMAP, ROWTABLE, ROW_CALL = 0x2322800, 0x2322900, 0x1116307
+ROWMAP_BYTES = bytes.fromhex("52e84a64d1fe5a8b0283f8207314488d0deb0000000fb604013dff00000074028902c3")
+CALL_ROW = bytes.fromhex("e8f4c42001")
+SIG_ROW = "e8 44 29 f2 ff 48 8b 43 10 8b 55 d4 4c 89 f7 48 8b 70 10 e8 31 6d 36 ff 49 8b 04 24 48 3b 45 d8"
 MINIMAP_INDEX = {  # n° de renvoi de la mini-carte : portail
     1: "t111_crash_cove", 2: "t113_mystery_caves", 3: "t112_roos_tubes", 4: "t114_sewer_speedway",
     5: "a115_skull_rock", 8: "t122_turbo_track", 9: "t121_slide_coliseum", 10: "cup_blue", 11: "cup_red",
@@ -414,6 +425,35 @@ SPOTS = {  # emplacement : position de HubZone, Teleporter, SpawnPoint (3 flotta
                    "c7f205c0", "c7f205c0"),
     "cup_purple": ("bd15b1c6a91800c700c0b044", "bd15b1c6a91800c700c0b044", "8fbfa9c63836f9c6a0da8644",
                    "6d7527c0", "6d7527c0"),
+}
+WARPS = {  # emplacement : position du socle (X_warp, 3 flottants), son cap
+    "t111_crash_cove": ("f19bfcc606ad154506f2e742", "f563ffbe"),
+    "t112_roos_tubes": ("ca7119c7cd094e46a47ff643", "55f83440"),
+    "t113_mystery_caves": ("001cc5c6522d7b46a71d2544", "00000000"),
+    "t114_sewer_speedway": ("852857c6377098457cb2d643", "664e2fc0"),
+    "a115_skull_rock": ("245cd9c69cf0764539f45943", "f563ffbe"),
+    "t121_slide_coliseum": ("9f0f86c6e1482ec64e31ea42", "0b983440"),
+    "t122_turbo_track": ("33c46fc6c3b12fc6edbeec42", "0b983440"),
+    "t131_coco_park": ("d7ab87c4a44e3dc677729f44", "0b983440"),
+    "t132_tiger_temple": ("b830344624e8f2c6faae9e44", "0b983440"),
+    "t133_papus_pyramid": ("ee9f104633623cc656661745", "66134740"),
+    "t134_dingo_canyon": ("fdbc0f468071c6c6e3ab1745", "0b983440"),
+    "a135_rampage_ruins": ("a4119146141fbdc63b6f1745", "0b983440"),
+    "t141_blizzard_bluff": ("d79c3a465e18f6c5c50ca244", "0b983440"),
+    "t142_dragon_mines": ("e62ca746a074d7c591f19e44", "00000000"),
+    "t143_polar_pass": ("68c685c52934ec4556de10c3", "29c409bf"),
+    "t144_tiny_arena": ("9a3ea046cb448f456c995b44", "07433740"),
+    "a145_rocky_road": ("8d6e084668d23d439f8bc142", "0b983440"),
+    "t151_ngin_labs": ("2902ad456e0c174779ad80c4", "0b983440"),
+    "t152_cortex_castle": ("173e80c5a42a01470e69edc4", "0b983440"),
+    "t153_hot_air_skyway": ("b24883c5df620347624c9f44", "0b983440"),
+    "t154_oxide_station": ("ec3c77463d790347c887cc43", "0b983440"),
+    "a155_nitro_court": ("1feb224685490c47d04cc143", "0b983440"),
+    "cup_red": ("ecc475c6f675fdc69ce09444", "0b983440"),
+    "cup_blue": ("cd6f95c6a6e109c771f59444", "0b983440"),
+    "cup_green": ("9f7888c66e1404c768399544", "0b983440"),
+    "cup_yellow": ("b85ca3c65a0905c706599544", "0b983440"),
+    "cup_purple": ("f1f3b0c6572200c74c0b9544", "0b983440"),
 }
 SIG_EMPTY = " ".join(["00"] * 16)
 
@@ -489,6 +529,15 @@ def area_table(locations):
     return bytes(out)
 
 
+def row_table(locations):
+    """ROWTABLE : pour chaque endroit (n° de son portail d'origine), le n° du portail posé là (0xff = inchangé)."""
+    out = bytearray(b"\xff" * 32)
+    for pad, spot in locations.items():
+        if pad != spot:
+            out[portal_index(spot)] = portal_index(pad)
+    return bytes(out)
+
+
 def spot_table():
     """SPOTTABLE : position de l'entité HubZone de chaque emplacement et son monde, par n° de portail."""
     keys = sorted(SPOTS, key=portal_index)
@@ -514,6 +563,8 @@ def pad_table(locations):
             yaw = new[3 + i] if i < 2 else ""
             rows += (bytes.fromhex(old[i]) + bytes.fromhex(new[i]) + (bytes.fromhex(yaw) if yaw else bytes(4))
                      + field.to_bytes(4, "little"))
+        rows += (bytes.fromhex(WARPS[pad][0]) + bytes.fromhex(WARPS[spot][0]) + bytes.fromhex(WARPS[spot][1])
+                 + (0x20).to_bytes(4, "little"))  # le socle
     if len(rows) // 32 >= PADTABLE_ROWS:
         raise ValueError("trop de portails déplacés")
     return rows + bytes(32)
@@ -608,7 +659,9 @@ def patch_xml(plan, rename=False, rewards=None):
         lines += (_line(CODE11, CODE11_BYTES, SIG_EMPTY) + _line(AREATABLE, area_table(plan["locations"]), SIG_EMPTY)
                   + _line(PADTABLE, pad_table(plan["locations"]), SIG_EMPTY) + _line(SPOTTABLE, spot_table(), SIG_EMPTY)
                   + _line(IDXTABLE, idx_table(plan["locations"]), SIG_EMPTY) + _line(MINIMAP, MINIMAP_BYTES, SIG_EMPTY)
-                  + _line(IGZ_FINISH, JUMP_IGZ, SIG_IGZ))
+                  + _line(IGZ_FINISH, JUMP_IGZ, SIG_IGZ)
+                  + _line(ROWMAP, ROWMAP_BYTES, SIG_EMPTY) + _line(ROWTABLE, row_table(plan["locations"]), SIG_EMPTY)
+                  + _line(ROW_CALL, CALL_ROW, SIG_ROW))
     if plan["settings"].get("skip_hints"):
         lines += _line(CODE10, CODE10_BYTES, SIG_EMPTY) + _line(PERCENT, JUMP_PERCENT, SIG_PERCENT)
     if plan.get("cups"):
@@ -631,6 +684,6 @@ def signature_sites():
     sites = [(LOADMAP, SIG_LOADMAP), (REWARD, SIG_REWARD), (REWARDED, SIG_REWARDED), (HUBNAME, SIG_HUBNAME),
              (BANNER, SIG_BANNER), (RECALC, SIG_RECALC), (WON_CALL, SIG_WON), (MODEL_CALL, SIG_MODEL),
              (GETALL, SIG_GETALL), (CUP_CALL, SIG_CUP), (PERCENT, SIG_PERCENT),
-             (IGZ_FINISH, SIG_IGZ)]
+             (IGZ_FINISH, SIG_IGZ), (ROW_CALL, SIG_ROW)]
     sites += [(func, sig) for func, _, _, sig in REWARD_FUNCS + COND_FUNCS]
     return [(address, bytes.fromhex(sig.replace(" ", ""))) for address, sig in sites]
