@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+
+# Jamais de fichiers du jeu dans ce dépôt
+*.pak
+*.igz
+*.sav
+*.pkg
+eboot.bin
