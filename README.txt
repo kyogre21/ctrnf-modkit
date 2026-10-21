@@ -1,6 +1,8 @@
 CTR Nitro-Fueled Randomizer
 ===========================
 
+(English version: README_EN.txt)
+
 Randomizer pour le mode Aventure de Crash Team Racing Nitro-Fueled, joué sur PC avec le port
 OCTR-NitroFueled-PC v0.5.1 ou plus récent (https://github.com/Ryu7w7/OCTR-NitroFueled-PC). Les ports plus
 anciens plantent ou se figent pendant les chargements.
