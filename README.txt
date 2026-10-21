@@ -1,6 +1,8 @@
 CTR Nitro-Fueled Autocollants
 =============================
 
+(English version: README_EN.txt)
+
 Petit logiciel pour remplacer les autocollants des karts de Crash Team Racing Nitro-Fueled (et leurs icônes dans le
 menu de personnalisation) par ses propres images, sur PC avec le port CTR-NitroFueled-PC
 (https://github.com/GetLostIn/CTR-NitroFueled-PC).
