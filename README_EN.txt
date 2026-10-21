@@ -7,6 +7,13 @@ option names in French with their English meaning.)
 kyogre21's mods for Crash Team Racing Nitro-Fueled on PC (CTR-NitroFueled-PC / OCTR-NitroFueled-PC port, game
 version 01.21), gathered in a single repository.
 
+The Mod Kit
+-----------
+CTRNF-ModKit.exe gathers every mod in one window: pick the port folder once, enable the mods you want (one tab per
+mod), see the files they placed, uninstall everything in one click, then "Lancer le jeu" (Launch the game), which
+opens the port's official launcher. If the game crashes, the kit shows a readable report to copy.
+Source code: modkit folder.
+
 The mods
 --------
 - Randomizer (randomizer folder): shuffles the Adventure mode (tracks, rewards, cups, unlock conditions, warp pad
@@ -14,6 +21,9 @@ The mods
   Program: CTRNF-Randomizer.exe. Guide: randomizer\README_EN.txt.
 - Stickers (autocollants folder): replaces the kart stickers (and their menu icons) with your own images.
   Program: CTRNF-Stickers.exe. Guide: autocollants\README_EN.txt.
+- LiveSplit autosplitter, ALPHA version (autosplitter folder): splits automatically during Adventure mode. Very
+  early development. Guide: autosplitter\README_EN.txt.
+Each mod's program is still available on its own, but the Mod Kit contains them all.
 
 Download
 --------

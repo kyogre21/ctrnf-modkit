@@ -12,3 +12,13 @@ __pycache__/
 *.sav
 *.pkg
 eboot.bin
+
+# Mod Kit : construction de l exe
+modkit/build/
+modkit/dist/
+modkit/build.log
+*.exe
+*.elf
+build/
+dist/
+modkit/dist_new/

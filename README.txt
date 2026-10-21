@@ -6,6 +6,13 @@ CTR Nitro-Fueled Mod Kit (kyogre21)
 Les mods de kyogre21 pour Crash Team Racing Nitro-Fueled sur PC (port CTR-NitroFueled-PC / OCTR-NitroFueled-PC,
 jeu en version 01.21), réunis dans un seul dépôt.
 
+Le Mod Kit
+----------
+CTRNF-ModKit.exe réunit tous les mods dans une seule fenêtre : choisir une fois le dossier du port, activer les mods
+voulus (un onglet par mod), voir les fichiers qu'ils ont posés, tout désinstaller d'un clic, puis « Lancer le jeu »,
+qui ouvre le launcher officiel du port. En cas de plantage du jeu, le kit affiche un rapport lisible à copier.
+Code source : dossier modkit.
+
 Les mods
 --------
 - Randomizer (dossier randomizer) : mélange le mode Aventure (circuits, récompenses, coupes, conditions
@@ -14,6 +21,9 @@ Les mods
 - Autocollants (dossier autocollants) : remplace les autocollants des karts (et leurs icônes du menu) par vos
   propres images.
   Programme : CTRNF-Stickers.exe. Mode d'emploi : autocollants\README.txt.
+- Autosplitter LiveSplit, version ALPHA (dossier autosplitter) : coupe le chrono tout seul pendant le mode
+  Aventure. Tout début de développement. Mode d'emploi : autosplitter\README.txt.
+Les programmes de chaque mod restent disponibles seuls, mais le Mod Kit les contient tous.
 
 Télécharger
 -----------
