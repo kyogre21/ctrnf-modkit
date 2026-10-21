@@ -34,7 +34,7 @@ Il faut
 Utilisation
 -----------
 1. Télécharger CTRNF-Randomizer.exe dans la page « Releases » du dépôt
-   (https://github.com/kyogre21/ctrnf-randomizer/releases/latest) et le lancer.
+   (https://github.com/kyogre21/ctrnf-modkit/releases/latest) et le lancer.
    Windows peut afficher « Windows a protégé votre ordinateur » (programme non signé) : cliquer sur
    « Informations complémentaires » puis « Exécuter quand même ».
 2. Choisir le dossier du port (celui qui contient bin, patches et out). La fenêtre vérifie la version du jeu.
@@ -55,7 +55,7 @@ charge au démarrage, dans le dossier archives du jeu (trouvé grâce à launche
 - archives\update_hub3.pak : podiums passables dès le début.
 Les fichiers du jeu ne sont jamais modifiés : supprimer ces deux archives remet le jeu d'origine. Le logiciel
 retire lui-même une archive quand l'option correspondante est coupée. Il ne touche jamais à
-archives\update3.pak, qui appartient à l'outil des autocollants (https://github.com/kyogre21/ctrnf-stickers).
+archives\update3.pak, qui appartient à l'outil des autocollants (dossier autocollants de ce dépôt).
 
 Avec Python 3.10 ou plus récent installé, on peut aussi lancer le code source : « Lancer le randomizer.bat »,
 ou sans fenêtre : python -m ctrnf_rando --help

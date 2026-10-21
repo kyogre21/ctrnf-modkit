@@ -9,8 +9,8 @@ echo Ce dossier est le code source du randomizer : il a besoin de Python pour se
 echo.
 echo Pas besoin d'installer quoi que ce soit : telechargez plutot le programme tout pret
 echo CTRNF-Randomizer.exe dans la page des Releases (la page va s'ouvrir) :
-echo   https://github.com/kyogre21/ctrnf-randomizer/releases/latest
+echo   https://github.com/kyogre21/ctrnf-modkit/releases/latest
 echo puis lancez CTRNF-Randomizer.exe.
 echo.
-start "" https://github.com/kyogre21/ctrnf-randomizer/releases/latest
+start "" https://github.com/kyogre21/ctrnf-modkit/releases/latest
 pause

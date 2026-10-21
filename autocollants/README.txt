@@ -18,7 +18,7 @@ Il faut
 Utilisation
 -----------
 1. Télécharger CTRNF-Stickers.exe dans la page « Releases » du dépôt
-   (https://github.com/kyogre21/ctrnf-stickers/releases/latest) et le lancer.
+   (https://github.com/kyogre21/ctrnf-modkit/releases/latest) et le lancer.
    Windows peut afficher « Windows a protégé votre ordinateur » (programme non signé) : cliquer sur
    « Informations complémentaires » puis « Exécuter quand même ».
 2. Choisir le dossier du jeu (celui qui contient « archives », par exemple CUSA13795-1.21) ou le dossier du port

@@ -34,7 +34,7 @@ Requirements
 How to use
 ----------
 1. Download CTRNF-Randomizer.exe from the repository's "Releases" page
-   (https://github.com/kyogre21/ctrnf-randomizer/releases/latest) and run it.
+   (https://github.com/kyogre21/ctrnf-modkit/releases/latest) and run it.
    Windows may show "Windows protected your PC" (unsigned program): click "More info" then "Run anyway".
 2. Pick the port folder (the one containing bin, patches and out). The window checks the game version.
 3. Type a seed (« Graine », or leave it empty), set the options in the tabs (hover an option to see its help).
@@ -53,7 +53,7 @@ the game's archives folder (found through the port's launcher.ini):
 - archives\update_hub3.pak: podiums skippable from the start.
 The game files are never modified: deleting these two archives restores the original game. The program removes
 an archive itself when its option is turned off. It never touches archives\update3.pak, which belongs to the
-sticker tool (https://github.com/kyogre21/ctrnf-stickers).
+sticker tool (autocollants folder of this repository).
 
 With Python 3.10 or newer installed, you can also run the source code: « Lancer le randomizer.bat »,
 or without a window: python -m ctrnf_rando --help
