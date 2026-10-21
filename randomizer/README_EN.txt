@@ -62,6 +62,17 @@ This repository contains no game files: you must own the game.
 
 What's new
 ----------
+0.3.0
+- Share code: after « Générer et installer », a 12-character code (e.g. D0W0-09N5-2EH9) holds the seed and every
+  option, comfort included. Your opponents paste it and click « Utiliser » (Use): same game, same fingerprint. Ideal
+  to race on the same seed. A check letter catches typos.
+- Presets: Découverte (Discovery), Classique (Classic) and Chaos buttons set the shuffle options in one click
+  (comfort options are not changed).
+- The randomizer can also be used inside the CTRNF Mod Kit (one tab).
+- Fixed: no track origin ticked with "duplicates" did nothing; a seed like "²" crashed.
+- update4.pak / update_hub3.pak are written in one go (never half-written, even with the game open); a
+  Randomizer.xml that is not ours is never overwritten; launcher.ini with quotes is read correctly.
+
 0.2.0
 - « Confort » tab: two new checkboxes, ticked by default.
   - Boost reserve: when you are not drifting, the drift bar (classic style) shows your boost reserve. It fills up

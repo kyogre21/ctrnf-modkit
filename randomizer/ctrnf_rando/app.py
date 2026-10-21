@@ -74,6 +74,11 @@ def install(seed, settings, port, rename=True):
     pose (ou retire) nos archives dans le dossier du jeu. Rend (plan, empreinte, chemin du journal, messages).
     Lève ValueError / RuntimeError si la graine est impossible."""
     port = Path(port)
+    target = port / "patches" / PATCH_NAME
+    if target.is_file():
+        head = target.read_text(encoding="utf-8", errors="replace")[:4000]
+        if 'Name="Randomizer"' not in head or 'Author="kyogre21"' not in head:
+            raise ValueError(f"{target} existe et n'est pas un patch de ce randomizer : rien n'est écrit")
     plan = generate(seed, settings)
     rows = patch_rows(plan["rewards"]) if plan.get("rewards") else None
     xml = patch_xml(plan, rename=rename, rewards=rows)
@@ -82,7 +87,7 @@ def install(seed, settings, port, rename=True):
     (out / f"graine_{seed}.json").write_text(json.dumps(plan, indent=2), encoding="utf-8")
     log = out / f"graine_{seed}_spoiler.txt"
     log.write_text(spoiler(plan), encoding="utf-8")
-    (port / "patches" / PATCH_NAME).write_text(xml, encoding="utf-8", newline="\n")
+    target.write_text(xml, encoding="utf-8", newline="\n")
     notes = []
     folder = archives.game_archives(port)
     wanted = wanted_archives(settings)

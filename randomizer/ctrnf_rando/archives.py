@@ -10,7 +10,6 @@ Chaque script est lu dans l'archive du jeu du joueur, vérifié (empreinte SHA-2
 fichier du jeu n'est copié dans ce dépôt. `update3.pak` appartient à l'outil des autocollants (ctrnf-stickers) : on n'y
 touche jamais.
 """
-import configparser
 import hashlib
 import lzma
 from pathlib import Path
@@ -50,12 +49,11 @@ def game_archives(port):
     ini = Path(port) / "launcher.ini"
     if not ini.is_file():
         return None
-    parser = configparser.ConfigParser(interpolation=None)
-    try:
-        parser.read_string("[launcher]\n" + ini.read_text(encoding="utf-8", errors="replace"))
-    except configparser.Error:
-        return None
-    game = parser.get("launcher", "game_dir", fallback="").strip()
+    game = ""
+    for line in ini.read_text(encoding="utf-8-sig", errors="replace").splitlines():
+        key, sep, value = line.strip().partition("=")
+        if sep and key.strip() == "game_dir":
+            game = value.strip().strip('"')  # clé en double : la dernière compte (comme le kit)
     folder = Path(game) / "archives" if game else None
     return folder if folder and folder.is_dir() else None
 
@@ -132,7 +130,8 @@ def pak_bytes(files):
         raise ValueError("deux noms de même empreinte")
     div = 0xffffffff // count
     slop = max(abs(i - h // div) for i, h in enumerate(hashes))
-    pos, places = SECTOR, []
+    start = -(-(0x38 + 20 * count) // SECTOR) * SECTOR  # après l'en-tête (plus d'un secteur dès 100 fichiers)
+    pos, places = start, []
     for n in names:
         places.append(pos)
         pos += -(-len(files[n]) // SECTOR) * SECTOR
@@ -148,7 +147,7 @@ def pak_bytes(files):
         entries += struct.pack("<IIII", places[i] & 0xffffffff, nxt << 8 | places[i] >> 32, len(files[n]), 0xffffffff)
     head = struct.pack("<4sIIIIIIIIIQII", b"IGA\x1a", 13, 20 * count, count, SECTOR, div, slop, 0, 0, 0, names_at,
                        len(name_block), 1)
-    data = bytearray(head + struct.pack(f"<{count}I", *hashes) + entries).ljust(SECTOR, b"\0")
+    data = bytearray(head + struct.pack(f"<{count}I", *hashes) + entries).ljust(start, b"\0")
     for i, n in enumerate(names):
         data = data.ljust(places[i], b"\0") + files[n]
     return bytes(data.ljust(names_at, b"\0") + name_block)
@@ -184,7 +183,9 @@ def install(folder, wanted):
             continue
         if script in wanted:
             data = patched(script, extract(folder / script.source, script.name))
-            target.write_bytes(pak_bytes({script.name: data}))
+            tmp = target.with_suffix(".tmp")  # jamais d'archive à moitié écrite, même si le jeu tourne
+            tmp.write_bytes(pak_bytes({script.name: data}))
+            tmp.replace(target)
             done.append((script.archive, "posée"))
         elif target.exists():
             target.unlink()

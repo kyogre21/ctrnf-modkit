@@ -32,6 +32,8 @@ class Settings:
 def _draw(rng, pads, pool, shuffle, allow_duplicates):
     if not shuffle:
         return {pad.vanilla: pad.vanilla for pad in pads}
+    if not pool:
+        raise ValueError("aucune origine de circuits choisie (CTR, CNK ou GP)")
     if not allow_duplicates and len(pool) < len(pads):
         raise ValueError(f"{len(pool)} niveaux pour {len(pads)} portails : autoriser les doublons "
                          "ou ajouter des origines")

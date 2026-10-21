@@ -64,6 +64,17 @@ Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 
 Nouveautés
 ----------
+0.3.0
+- Code de partage : après « Générer et installer », un code de 12 caractères (ex. D0W0-09N5-2EH9) contient la
+  graine et toutes les options, confort compris. Vos adversaires le collent et cliquent « Utiliser » : même partie,
+  même empreinte. Idéal pour s'affronter sur la même graine. Une lettre de contrôle repère les fautes de frappe.
+- Préréglages : boutons Découverte, Classique et Chaos, qui règlent les options du tirage d'un coup (le confort ne
+  change pas).
+- Le randomizer s'utilise aussi dans le CTRNF Mod Kit (un onglet).
+- Corrigé : aucune origine de circuits cochée avec « doublons » ne faisait rien ; une graine comme « ² » plantait.
+- Les archives update4.pak / update_hub3.pak sont écrites d'un coup (jamais à moitié, même jeu ouvert) ; un
+  Randomizer.xml qui n'est pas à nous n'est jamais écrasé ; launcher.ini avec guillemets lu correctement.
+
 0.2.0
 - Onglet « Confort » : deux nouvelles cases, cochées par défaut.
   - Réserve de boost : quand vous ne dérapez pas, la barre de dérapage (style classique) montre votre

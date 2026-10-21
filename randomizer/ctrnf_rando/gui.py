@@ -6,7 +6,7 @@ import random
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from . import __version__, app
+from . import __version__, app, share
 from .generator import ORIGINS, Settings
 
 TITLE = f"CTR Nitro-Fueled Randomizer {__version__}"
@@ -50,26 +50,36 @@ HELP = {
                  "coupe sur la plage, etc. Le décor reste en place, mais ce qui s'y lance, ses objets et sa condition "
                  "suivent le portail. Les garages de boss ne bougent pas. Toujours finissable : les conditions "
                  "s'adaptent au monde où chaque portail arrive.",
+    "code": "Le code de partage contient la graine et tous les réglages (circuits, récompenses, conditions, confort…). "
+            "Donnez-le à vos adversaires : en le collant ici puis « Utiliser », ils ont exactement la même partie "
+            "(même empreinte). « Copier » donne le code de la graine et des réglages affichés.",
+    "presets": "Règle d'un coup les options du tirage. Les options de confort ne changent pas. "
+               + " ".join(f"{name} : {text}" for name, text, _ in share.PRESETS),
     "generate": "Tire la graine, pose le patch dans le dossier patches du port et enregistre la graine et son journal "
                 "dans le dossier graines_randomizer du port. Commencez ensuite une nouvelle aventure.",
 }
 
 
 class App(ttk.Frame):
-    def __init__(self, root):
+    def __init__(self, root, context=None):
+        """root : la fenêtre (logiciel autonome) ou, avec `context`, l'onglet du CTRNF Mod Kit qui la reçoit : le
+        dossier du port et les réglages viennent alors du kit."""
         super().__init__(root, padding=10)
-        self.root = root
-        root.title(TITLE)
-        root.minsize(740, 600)
-        self.grid(sticky="nsew")
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(0, weight=1)
+        self.root = root.winfo_toplevel()
+        self.context = context
+        if context is None:
+            root.title(TITLE)
+            root.minsize(740, 600)
+            self.grid(sticky="nsew")
+            root.columnconfigure(0, weight=1)
+            root.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
-        conf = app.load_config()
+        conf = context.module_config() if context else app.load_config()
         self.log_path = None
 
-        self.port = tk.StringVar(value=conf.get("port", ""))
+        self.port = context.port_var if context else tk.StringVar(value=conf.get("port", ""))
         self.seed = tk.StringVar()
+        self.code = tk.StringVar()
         self.tracks = tk.BooleanVar(value=conf.get("tracks", True))
         self.origins = {o: tk.BooleanVar(value=o in conf.get("origins", ORIGINS)) for o in ORIGINS}
         self.duplicates = tk.BooleanVar(value=conf.get("duplicates", False))
@@ -105,13 +115,29 @@ class App(ttk.Frame):
         box = ttk.LabelFrame(self, text="Jeu et graine", padding=8)
         box.columnconfigure(1, weight=1)
         self.helped(ttk.Label(box, text="Dossier du port :"), "port").grid(row=0, column=0, sticky="w")
-        self.helped(ttk.Entry(box, textvariable=self.port), "port").grid(row=0, column=1, sticky="ew", padx=6)
-        ttk.Button(box, text="Parcourir…", command=self.browse).grid(row=0, column=2)
+        self.helped(ttk.Entry(box, textvariable=self.port, state="readonly" if self.context else "normal"),
+                    "port").grid(row=0, column=1, sticky="ew", padx=6)
+        if self.context:
+            ttk.Label(box, text="(choisi dans l'Accueil)", foreground="#555").grid(row=0, column=2)
+        else:
+            ttk.Button(box, text="Parcourir…", command=self.browse).grid(row=0, column=2)
         self.status = ttk.Label(box, text="")
         self.status.grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 6))
         self.helped(ttk.Label(box, text="Graine :"), "seed").grid(row=2, column=0, sticky="w")
         self.helped(ttk.Entry(box, textvariable=self.seed, width=16), "seed").grid(row=2, column=1, sticky="w", padx=6)
         ttk.Button(box, text="Au hasard", command=self.random_seed).grid(row=2, column=2)
+        self.helped(ttk.Label(box, text="Code de partage :"), "code").grid(row=3, column=0, sticky="w", pady=(4, 0))
+        row = ttk.Frame(box)
+        row.grid(row=3, column=1, columnspan=2, sticky="w", padx=6, pady=(4, 0))
+        self.helped(ttk.Entry(row, textvariable=self.code, width=18), "code").pack(side="left")
+        self.helped(ttk.Button(row, text="Utiliser", command=self.use_code), "code").pack(side="left", padx=(6, 0))
+        self.helped(ttk.Button(row, text="Copier", command=self.copy_code), "code").pack(side="left", padx=(6, 0))
+        self.helped(ttk.Label(box, text="Préréglages :"), "presets").grid(row=4, column=0, sticky="w", pady=(4, 0))
+        row = ttk.Frame(box)
+        row.grid(row=4, column=1, columnspan=2, sticky="w", padx=6, pady=(4, 0))
+        for name, _, values in share.PRESETS:
+            self.helped(ttk.Button(row, text=name, command=lambda v=values, n=name: self.preset(n, v)),
+                        "presets").pack(side="left", padx=(0, 6))
         return box
 
     def page(self, tabs, title, intro):
@@ -213,6 +239,8 @@ class App(ttk.Frame):
         self.messages.configure(state="disabled")
 
     def browse(self):
+        if self.context:  # dans le kit, le dossier du port se change dans l'Accueil
+            return
         folder = filedialog.askdirectory(title="Dossier du port CTR-NitroFueled-PC", initialdir=self.port.get() or None)
         if folder:
             self.port.set(folder)
@@ -238,6 +266,48 @@ class App(ttk.Frame):
                         skip_hints=self.hints.get(), shuffle_locations=self.locations.get(),
                         boost_reserve=self.reserve.get(), fast_podiums=self.podiums.get())
 
+    def apply(self, settings):
+        """Remet dans la fenêtre les réglages d'un Settings."""
+        self.tracks.set(settings.shuffle_tracks)
+        for origin in ORIGINS:
+            self.origins[origin].set(origin in settings.track_origins)
+        self.duplicates.set(settings.allow_duplicates)
+        self.arenas.set(settings.shuffle_arenas)
+        self.rewards.set(settings.shuffle_rewards)
+        self.cups.set(settings.shuffle_cups)
+        self.pads.set(settings.pad_conditions)
+        self.challenges.set(settings.challenges)
+        self.hints.set(settings.skip_hints)
+        self.reserve.set(settings.boost_reserve)
+        self.podiums.set(settings.fast_podiums)
+        self.locations.set(settings.shuffle_locations)
+
+    def preset(self, name, values):
+        self.apply(Settings(**{**self.settings().__dict__, **values}))
+        self.say(f"Préréglage « {name} » appliqué (options de confort inchangées).")
+
+    def use_code(self):
+        try:
+            seed, settings, rename = share.decode(self.code.get())
+        except ValueError as error:
+            messagebox.showerror(TITLE, f"Code de partage refusé : {error}.")
+            return
+        self.seed.set(str(seed))
+        self.apply(settings)
+        self.names.set(rename)
+        self.code.set(share.encode(seed, settings, rename))
+        self.say(f"Code {self.code.get()} : graine {seed} et réglages chargés. Cliquez sur « Générer et installer ».")
+
+    def copy_code(self):
+        text = self.seed.get().strip()
+        if not (text.isascii() and text.isdigit()) or int(text) >= 1 << 32:
+            messagebox.showerror(TITLE, "Choisissez une graine (ou « Au hasard ») pour avoir son code de partage.")
+            return
+        self.code.set(share.encode(int(text), self.settings(), self.names.get()))
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.code.get())
+        self.say(f"Code de partage copié : {self.code.get()}")
+
     def values(self):
         return {"port": self.port.get().strip(), "tracks": self.tracks.get(),
                 "origins": [o for o in ORIGINS if self.origins[o].get()], "duplicates": self.duplicates.get(),
@@ -251,8 +321,8 @@ class App(ttk.Frame):
             messagebox.showerror(TITLE, "Le dossier du port n'est pas bon : voir le message en haut de la fenêtre.")
             return
         text = self.seed.get().strip()
-        if text and not text.isdigit():
-            messagebox.showerror(TITLE, "La graine doit être un nombre (ou vide pour un tirage au hasard).")
+        if text and (not (text.isascii() and text.isdigit()) or int(text) >= 1 << 32):
+            messagebox.showerror(TITLE, "La graine doit être un nombre de 0 à 4294967295 (ou vide pour un tirage au hasard).")
             return
         if not text:
             self.random_seed()
@@ -274,13 +344,18 @@ class App(ttk.Frame):
         finally:
             self.go.configure(state="normal")
             self.root.config(cursor="")
-        app.save_config(self.values())
+        if self.context:
+            self.context.save_module_config(self.values())
+        else:
+            app.save_config(self.values())
         self.log_path = log
         self.log_button.configure(state="normal")
         self.print_label.configure(text=f"Empreinte : {mark}")
         self.say(f"Graine {seed} installée (empreinte {mark}).")
         self.say(f"Patch : {Path(self.port.get().strip()) / 'patches' / app.PATCH_NAME}")
         self.say(f"Journal : {log}")
+        self.code.set(share.encode(seed, self.settings(), self.names.get()))
+        self.say(f"Code de partage : {self.code.get()} (vos adversaires le collent pour avoir la même partie)")
         for note in notes:
             self.say(note)
         self.say("Lancez le jeu et commencez une nouvelle aventure (une ancienne partie ne correspond plus).")
