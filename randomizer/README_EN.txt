@@ -62,6 +62,12 @@ This repository contains no game files: you must own the game.
 
 What's new
 ----------
+0.3.1
+- Fixed: in a brand-new adventure (before the game was restarted once), a race you won could give nothing: the race
+  was still offered and the item never came. It happened when the warp pad launches an Adventure track whose own
+  original warp pad was already won (e.g. a pad that launches Crash Cove, after winning the Crash Cove pad). Game
+  started with an older version: restart the game once, then play the race again.
+
 0.3.0
 - Share code: after « Générer et installer », a 12-character code (e.g. D0W0-09N5-2EH9) holds the seed and every
   option, comfort included. Your opponents paste it and click « Utiliser » (Use): same game, same fingerprint. Ideal

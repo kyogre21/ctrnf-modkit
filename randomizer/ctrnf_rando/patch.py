@@ -177,12 +177,15 @@ CODE2_BYTES = bytes.fromhex(
     "415a415941585f5e5a5958554889e541574156e9d662d4fe")
 # Détour du test « déjà gagné ? » (assemblé à CODE4) : le même que CODE2, mais qui remplace la
 # sauvegarde de la zone (CZoneInfo+0x160) au lieu de la zone, et rien pendant le recalcul des compteurs.
+# Aventure neuve (pas encore rechargée) : la sauvegarde n'a pas de nom ; il est alors pris à la zone en cours
+# (0x102e040), seulement si la sauvegarde est la sienne.
 CODE4_BYTES = bytes.fromhex(
-    "50515256574150415141524153833dec3a8b00000f858b0000004885ff0f8482000000488b051e2e79004885c074"
-    "768b804c0d000083f81f776bb92a0100000fa3c17361488b47104885c07458488d15ac52ffff803a00744c31c944"
-    "8a440a40443a0408750c4584c07410ffc183f94072e94881c280000000ebd9488b3d968b7a004885ff741e4889d6"
-    "e89132cffe4885c07411488b80600100004885c074054889442420415b415a415941585f5e5a5958554889e54157"
-    "4156e979cecffe")
+    "50515256574150415141524153833dec3a8b00000f85cf0000004885ff0f84c6000000488b051e2e79004885c00f"
+    "84b60000008b804c0d000083f81f0f87a7000000b92a0100000fa3c10f8399000000488b47104885c0745e488d15"
+    "a052ffff803a000f848000000031c9448a440a40443a0408750c4584c07410ffc183f94072e94881c280000000eb"
+    "d5488b3d868b7a004885ff74524889d6e88132cffe4885c07445488b80600100004885c074394889442420eb3248"
+    "8b3d5a8b7a004885ff7426e8782fcffe4885c0741c488b4c242048398860010000750e488b40104885c07405e970"
+    "ffffff415b415a415941585f5e5a5958554889e541574156e935cecffe")
 # Option « récompenses » (assemblé à CODE7) : enveloppe du recalcul des compteurs, SHOW, une enveloppe par
 # fonction de fin de course (adresses dans REWARD_FUNCS), PAD3D_WON, PAD3D_MODEL puis GEMROW.
 CODE7_BYTES = bytes.fromhex(

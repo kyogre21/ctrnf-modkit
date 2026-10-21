@@ -64,6 +64,13 @@ Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 
 Nouveautés
 ----------
+0.3.1
+- Corrigé : dans une aventure toute neuve (avant le premier redémarrage du jeu), une course gagnée pouvait ne rien
+  donner : la course restait proposée et l'objet n'arrivait pas. Ça arrivait quand le portail lance un circuit
+  d'Aventure dont le portail d'origine était déjà gagné (ex. : un portail qui lance Crash Cove, après avoir gagné le
+  portail de Crash Cove). Partie commencée avec une version plus ancienne : relancer le jeu une fois, puis rejouer la
+  course, suffit.
+
 0.3.0
 - Code de partage : après « Générer et installer », un code de 12 caractères (ex. D0W0-09N5-2EH9) contient la
   graine et toutes les options, confort compris. Vos adversaires le collent et cliquent « Utiliser » : même partie,
