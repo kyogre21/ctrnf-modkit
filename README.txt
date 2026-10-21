@@ -60,6 +60,27 @@ ou sans fenêtre : python -m ctrnf_rando --help
 
 Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 
+Nouveautés
+----------
+0.2.0
+- Onglet « Confort » : deux nouvelles cases, cochées par défaut.
+  - Réserve de boost : quand vous ne dérapez pas, la barre de dérapage (style classique) montre votre
+    réserve de boost. Elle se remplit quand vous enchaînez les turbos (pleine = 5 s ou plus).
+  - Podiums rapides : l'écran « appuyez pour passer » s'ouvre dès le début de l'animation du podium.
+- La case des indices d'Aku Aku passe aussi les cinématiques d'ouverture des portes déjà ouvertes par vos clés.
+- Récompenses mélangées : la mini-carte du hub ne coche un portail que quand ses 3 reliques sont gagnées.
+- Corrigé : la clé de boss gagnée restait cachée derrière le pilote sur le podium.
+- Corrigé : la cinématique du boss se lance au nombre de trophées demandé par son garage, et non plus quand
+  toutes les courses du monde sont gagnées.
+- Corrigé : dans les menus de progression, une coupe déplacée sur une ligne de course faussait les icônes ;
+  la ligne montre maintenant le nom de la coupe, sans icône.
+- « Lancer le randomizer.bat » renvoie vers CTRNF-Randomizer.exe quand Python n'est pas installé.
+Une graine générée avec une version précédente doit être regénérée (même numéro) pour avoir ces ajouts.
+
+0.1.1
+- Corrigé : plantage au passage à la 2e course d'une coupe ; halo « ouvert » sur un portail fermé ; menus de
+  progression qui montraient le portail d'origine au lieu de celui posé à cet endroit.
+
 Crédits
 -------
 - Idée inspirée du CTR-Randomizer d'icebound777 pour la version PS1
