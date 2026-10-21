@@ -8,6 +8,7 @@ import sys
 
 from . import __version__
 from .generator import generate, spoiler
+from . import archives
 from .patch import patch_xml, signature_sites
 from .rewards import patch_rows
 
@@ -38,7 +39,9 @@ def check_port(folder):
     found = version.read_text(encoding="utf-8", errors="replace").strip() if version.is_file() else "inconnue"
     if problems:
         return False, problems
-    return True, [f"port {found}, jeu CUSA13795 v1.21 vérifié"]
+    games = "" if archives.game_archives(folder) else (" (dossier du jeu introuvable dans launcher.ini : podiums "
+                                                        "rapides et mini-carte des reliques indisponibles)")
+    return True, [f"port {found}, jeu CUSA13795 v1.21 vérifié{games}"]
 
 
 def game_running():
@@ -61,9 +64,15 @@ def fingerprint(plan, rename):
     return f"{digest[:4]}-{digest[4:8]}"
 
 
+def wanted_archives(settings):
+    """Nos archives à poser pour ces réglages (voir archives.py)."""
+    return [s for s, on in ((archives.MINIMAP, settings.shuffle_rewards), (archives.PODIUM, settings.fast_podiums)) if on]
+
+
 def install(seed, settings, port, rename=True):
-    """Tire la graine, écrit le patch dans <port>/patches et la graine + le journal dans <port>/graines_randomizer.
-    Rend (plan, empreinte, chemin du journal). Lève ValueError / RuntimeError si la graine est impossible."""
+    """Tire la graine, écrit le patch dans <port>/patches et la graine + le journal dans <port>/graines_randomizer, et
+    pose (ou retire) nos archives dans le dossier du jeu. Rend (plan, empreinte, chemin du journal, messages).
+    Lève ValueError / RuntimeError si la graine est impossible."""
     port = Path(port)
     plan = generate(seed, settings)
     rows = patch_rows(plan["rewards"]) if plan.get("rewards") else None
@@ -74,7 +83,15 @@ def install(seed, settings, port, rename=True):
     log = out / f"graine_{seed}_spoiler.txt"
     log.write_text(spoiler(plan), encoding="utf-8")
     (port / "patches" / PATCH_NAME).write_text(xml, encoding="utf-8", newline="\n")
-    return plan, fingerprint(plan, rename), log
+    notes = []
+    folder = archives.game_archives(port)
+    wanted = wanted_archives(settings)
+    if folder:
+        notes += [f"{name} {what} dans {folder}" for name, what in archives.install(folder, wanted)]
+    elif wanted:
+        notes.append("Dossier du jeu introuvable (launcher.ini du port, game_dir) : podiums rapides et mini-carte des "
+                     "reliques non installés.")
+    return plan, fingerprint(plan, rename), log, notes
 
 
 def load_config():

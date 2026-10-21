@@ -1,6 +1,8 @@
 """python -m ctrnf_rando [--seed N] [--out dossier] [--origins CTR,CNK,GP] [--doublons] [--sans-arenes]
                        [--recompenses] [--coupes coupes|circuits] [--conditions nombres|hasard]
-                       [--defis ouverts|hasard] [--emplacements] [--sans-indices] [--patch fichier.xml [--noms]]"""
+                       [--defis ouverts|hasard] [--emplacements] [--sans-indices] [--reserve]
+                       [--patch fichier.xml [--noms]]
+(les archives du dossier du jeu, podiums rapides et mini-carte des reliques, ne sont posées que par la fenêtre)"""
 import argparse
 import json
 from pathlib import Path
@@ -36,6 +38,8 @@ def main():
                              "pas les garages de boss) ; toujours finissable")
     parser.add_argument("--sans-indices", action="store_true",
                         help="confort : les indices d'Aku Aku sont marqués comme déjà vus (ils ne coupent plus la partie)")
+    parser.add_argument("--reserve", action="store_true",
+                        help="confort : hors dérapage, la barre de dérapage montre la réserve de boost")
     parser.add_argument("--patch", type=Path,
                         help="écrire aussi le patch du jeu (ex. <port>/patches/Randomizer.xml)")
     parser.add_argument("--noms", action="store_true",
@@ -51,7 +55,7 @@ def main():
                         shuffle_arenas=not args.sans_arenes, shuffle_rewards=args.recompenses,
                         shuffle_cups=args.coupes or "non", pad_conditions=args.conditions or "origine",
                         challenges=args.defis or "origine", skip_hints=args.sans_indices,
-                        shuffle_locations=args.emplacements)
+                        shuffle_locations=args.emplacements, boost_reserve=args.reserve)
     plan = generate(seed, settings)
 
     args.out.mkdir(parents=True, exist_ok=True)

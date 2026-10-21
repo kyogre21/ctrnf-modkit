@@ -23,7 +23,9 @@ class Settings:
     shuffle_cups: str = "non"          # circuits des coupes de gemmes, voir CUP_MODES
     pad_conditions: str = "origine"    # courses, Slide / Turbo, arènes, coupes : voir PAD_MODES
     challenges: str = "origine"        # défi CTR et relique d'un portail : origine / ouverts / hasard
-    skip_hints: bool = False           # confort : indices d'Aku Aku marqués comme déjà vus
+    skip_hints: bool = False           # confort : indices d'Aku Aku et cinématiques des portes ouvertes marqués comme vus
+    boost_reserve: bool = False        # confort : hors dérapage, la barre de dérapage montre la réserve de boost
+    fast_podiums: bool = False         # confort : podium passable dès le début (archive update_hub3.pak)
     shuffle_locations: bool = False    # emplacements des portails (courses, arènes, coupes, Slide, Turbo) mélangés
 
 

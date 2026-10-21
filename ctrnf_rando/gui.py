@@ -38,7 +38,14 @@ HELP = {
     "challenges": "Défi CTR et course aux reliques d'un portail, une fois son trophée gagné. D'origine : il faut des "
                   "clés. Ouverts : jouables tout de suite. Au hasard : il faut un nombre tiré de trophées, de "
                   "clés, de reliques, de gemmes ou de jetons d'une couleur (toujours atteignable).",
-    "hints": "Les indices d'Aku Aku sont marqués comme déjà vus : ils ne coupent plus la partie.",
+    "hints": "Les indices d'Aku Aku sont marqués comme déjà vus : ils ne coupent plus la partie. Les cinématiques "
+             "d'ouverture des portes déjà ouvertes par vos clés sont aussi passées (le jeu les gardait pour le retour "
+             "d'un boss).",
+    "reserve": "Hors dérapage, la barre de dérapage (style classique, celle de CTR) montre votre réserve de boost : elle "
+               "se remplit quand vous enchaînez les turbos et se vide quand la réserve s'épuise (pleine = 5 s ou plus).",
+    "podiums": "Au podium, l'écran « appuyez pour passer » s'ouvre dès le début au lieu d'attendre la fin de "
+               "l'animation (posé dans le dossier du jeu : archives/update_hub3.pak). Si vous ne passez pas, le "
+               "podium garde sa dernière pose.",
     "locations": "Les portails changent de place entre eux : une bataille peut se trouver là où était Crash Cove, une "
                  "coupe sur la plage, etc. Le décor reste en place, mais ce qui s'y lance, ses objets et sa condition "
                  "suivent le portail. Les garages de boss ne bougent pas. Toujours finissable : les conditions "
@@ -73,6 +80,8 @@ class App(ttk.Frame):
         self.pads = tk.StringVar(value=conf.get("pads", "origine"))
         self.challenges = tk.StringVar(value=conf.get("challenges", "origine"))
         self.hints = tk.BooleanVar(value=conf.get("hints", True))
+        self.reserve = tk.BooleanVar(value=conf.get("reserve", True))
+        self.podiums = tk.BooleanVar(value=conf.get("podiums", True))
         self.locations = tk.BooleanVar(value=conf.get("locations", False))
 
         self.build_game().grid(row=0, column=0, sticky="ew")
@@ -176,9 +185,13 @@ class App(ttk.Frame):
         self.helped(ttk.Checkbutton(page, text="Mélanger les emplacements des portails", variable=self.locations),
                     "locations").grid(row=1, column=0, sticky="w")
 
-        page = self.page(tabs, "Confort", "Pour jouer plus vite.")
-        self.helped(ttk.Checkbutton(page, text="Passer les indices d'Aku Aku", variable=self.hints), "hints").grid(
-            row=1, column=0, sticky="w")
+        page = self.page(tabs, "Confort", "Pour jouer plus vite et mieux voir ce qui se passe.")
+        self.helped(ttk.Checkbutton(page, text="Passer les indices d'Aku Aku et les cinématiques des portes",
+                                    variable=self.hints), "hints").grid(row=1, column=0, sticky="w")
+        self.helped(ttk.Checkbutton(page, text="Afficher la réserve de boost dans la barre de dérapage",
+                                    variable=self.reserve), "reserve").grid(row=2, column=0, sticky="w")
+        self.helped(ttk.Checkbutton(page, text="Pouvoir passer les podiums dès le début", variable=self.podiums),
+                    "podiums").grid(row=3, column=0, sticky="w")
         return tabs
 
     def build_bottom(self):
@@ -222,14 +235,16 @@ class App(ttk.Frame):
                         shuffle_arenas=self.arenas.get(), allow_duplicates=self.duplicates.get(),
                         shuffle_rewards=self.rewards.get(), shuffle_cups=self.cups.get(),
                         pad_conditions=self.pads.get(), challenges=self.challenges.get(),
-                        skip_hints=self.hints.get(), shuffle_locations=self.locations.get())
+                        skip_hints=self.hints.get(), shuffle_locations=self.locations.get(),
+                        boost_reserve=self.reserve.get(), fast_podiums=self.podiums.get())
 
     def values(self):
         return {"port": self.port.get().strip(), "tracks": self.tracks.get(),
                 "origins": [o for o in ORIGINS if self.origins[o].get()], "duplicates": self.duplicates.get(),
                 "arenas": self.arenas.get(), "names": self.names.get(), "rewards": self.rewards.get(),
                 "cups": self.cups.get(), "pads": self.pads.get(), "challenges": self.challenges.get(),
-                "hints": self.hints.get(), "locations": self.locations.get()}
+                "hints": self.hints.get(), "locations": self.locations.get(), "reserve": self.reserve.get(),
+                "podiums": self.podiums.get()}
 
     def generate(self):
         if not self.check_port():
@@ -249,7 +264,7 @@ class App(ttk.Frame):
         self.root.config(cursor="watch")
         self.root.update_idletasks()
         try:
-            plan, mark, log = app.install(seed, self.settings(), self.port.get().strip(), rename=self.names.get())
+            plan, mark, log, notes = app.install(seed, self.settings(), self.port.get().strip(), rename=self.names.get())
         except (ValueError, RuntimeError) as error:
             messagebox.showerror(TITLE, f"Impossible de tirer cette graine : {error}")
             return
@@ -266,6 +281,8 @@ class App(ttk.Frame):
         self.say(f"Graine {seed} installée (empreinte {mark}).")
         self.say(f"Patch : {Path(self.port.get().strip()) / 'patches' / app.PATCH_NAME}")
         self.say(f"Journal : {log}")
+        for note in notes:
+            self.say(note)
         self.say("Lancez le jeu et commencez une nouvelle aventure (une ancienne partie ne correspond plus).")
 
     def open_log_file(self):

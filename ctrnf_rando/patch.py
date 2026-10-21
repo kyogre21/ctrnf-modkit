@@ -35,7 +35,10 @@ Option « conditions » : ce qu'il faut pour ouvrir chaque portail de course (la
 relique), Slide Coliseum, Turbo Track, chaque garage de boss, chaque arène et chaque coupe vient d'une table écrite
 dans le patch (trophées, clés, reliques, gemmes ou jetons d'une couleur).
 
-Option « indices » : les indices d'Aku Aku sont marqués comme déjà vus (ils ne coupent plus la partie).
+Option « indices » : les indices d'Aku Aku sont marqués comme déjà vus (ils ne coupent plus la partie), ainsi que les
+cinématiques d'ouverture des portes que les clés de la partie ouvrent déjà.
+
+Option « réserve » : hors dérapage, la barre de dérapage classique montre la réserve de boost.
 
 Option « emplacements » : les portails (courses, arènes, coupes, Slide, Turbo) changent de place entre eux ; le
 patch déplace leurs objets au chargement des cartes du hub, avant que le jeu les construise.
@@ -100,8 +103,21 @@ HUBZONE_LIST = 0x274ea00
 WORLDS = [1] * 6 + [3] * 5 + [4] * 6 + [5] * 6 + [3] + [2] * 8  # monde d'origine de chaque n° de portail
 PAD_FIELDS = (0x20, 0x20, 0x10)  # HubZone, Teleporter, SpawnPoint
 # Option « indices » : le pourcentage de la partie (PERCENT, appelé au chargement et après chaque récompense) est
-# enveloppé (CODE10) pour marquer comme vus les 23 indices d'Aku Aku (slot+0x48, un bit par indice).
+# enveloppé (CODE10) pour marquer comme vus les 23 indices d'Aku Aku (slot+0x48, un bit par indice). Après le travail
+# d'origine (qui recalcule les compteurs), CODE10 note aussi comme vues (slot+0x4c) les cinématiques d'ouverture des
+# portes que les clés de la partie (slot+0x10) ouvrent déjà : le jeu ne les joue qu'au retour d'un boss, même pour une
+# porte ouverte depuis longtemps. DOOR_CUTSCENES : (clés, bits de EOctaneAdventureCutscene).
 PERCENT, CODE10 = 0xfdf0f0, 0x233af80
+DOOR_CUTSCENES = ((1, 0x2000), (2, 0x4000 | 0x10000 | 0x20000), (3, 0x8000))
+# Option « réserve » : la barre de dérapage classique (scripts Octane_BoostBar) se remplit d'après getDriftRatio_VSC,
+# qui appelle 0x1041c60 en RATIO_CALL. L'appel va à RESERVE : le ratio du dérapage s'il n'est pas nul, sinon le plus
+# grand temps restant des boosts actifs du kart (CKartBoostComponent+0x28) divisé par 5 s, borné à 1. La barre ne lit
+# ce ratio qu'entre un départ et un arrêt de mise à jour, et ignore un départ quand elle tourne déjà : la fin d'un
+# dérapage (STOP_DRIFT) et la fin de la jauge du départ turbo / de la remise en piste (STOP_START) font l'arrêt d'origine
+# puis un départ « dérapage » (RESERVE_START) ; le début de cette jauge (START_TIMING) fait un arrêt avant son départ
+# (TIMING_START).
+RESERVE, RESERVE_START, TIMING_START = 0x2323000, 0x2323180, 0x23231a0
+RATIO_CALL, STOP_DRIFT, STOP_START, START_TIMING = 0x112eb08, 0xe2d5df, 0xe7cc28, 0xe7d2d5
 CODE3 = 0x233a000  # option « noms »
 CODE4 = 0x233b000
 CODE5 = 0x233b200  # option « noms »
@@ -206,7 +222,25 @@ CODE7_BYTES = bytes.fromhex(
     "bfcffe")
 # Option « indices » (assemblé à CODE10) : voir PERCENT.
 CODE10_BYTES = bytes.fromhex(
-    "488b87c00d00004885c07407814848ffffff00554889e541574156e95841cafe")
+    "534889fb488b87c00d00004885c07407814848ffffff00e83c000000488b8bc00d00004885c9742e8b51104531c083fa017c1f4181c8"
+    "0020000083fa027c134181c80040030083fa037c074181c8008000004409414c5bc3554889e541574156e91341cafe")
+# Option « réserve » (assemblé à RESERVE, RESERVE_START, TIMING_START) : voir RESERVE.
+RESERVE_BYTES = bytes.fromhex(
+    "554889e54157415641554154534883ec084989fe4889f3c703000000004d85f60f84d2000000488b3553157a0031d24c89f7e8598f0bfe"
+    "4885c0741a4889c7e8cc96b6fec5fa1103c5f057c9c5f82ec10f87a2000000488b35bb0f7a0031d24c89f7e8298f0bfe4885c00f848800"
+    "0000488b40284885c0747f4863480c4c8b78204d8d34cfc745d0000000004d39f773444d8b274983c7084d85e474ef4d8b6c24104d85ed"
+    "74e54c89e7e8a1bfb0fec4c17a58451cc4c17a584524c4c17a58442428c4c17a5c442418c5fa5f45d0c5fa1145d0ebb7b8cdcc4c3ec5f9"
+    "6ec8c5fa1045d0c5fa59c1b80000803fc5f96ec8c5fa5dc1c5fa11034883c4085b415c415d415e415f5dc3")
+RESERVE_START_BYTES = bytes.fromhex("57e81aa6b0fe5fbe01000000e91f06b2fe")
+TIMING_START_BYTES = bytes.fromhex("57564883ec08e8f5a5b0fe4883c4085e5fe9fa05b2fe")
+CALL_RATIO = bytes.fromhex("e8f3441f01")
+SIG_RATIO = "e8 53 31 f1 ff 48 8b 43 10 c5 fa 10 45 d4 4c 89 f7 48 8b 70 08 e8 8e ca 34 ff 48 8b 7d d8 48 85"
+CALL_STOP_DRIFT = bytes.fromhex("e89c5b4f01")
+SIG_STOP_DRIFT = "e8 bc 01 00 00 48 8d 05 bd 49 cc 01 8b 1d c7 7e c3 01 48 8b 38 80 7f 6c 00 0f 84 32 01 00 00 e8"
+CALL_STOP_START = bytes.fromhex("e853654a01")
+SIG_STOP_START = "e8 73 0b fb ff c6 83 89 00 00 00 01 48 89 df 8b b3 8c 00 00 00 e8 0e 54 fb ff 49 8b 04 24 48 3b"
+CALL_START_TIMING = bytes.fromhex("e8c65e4a01")
+SIG_START_TIMING = "e8 d6 64 fc ff c6 83 89 00 00 00 00 48 89 df 8b b3 8c 00 00 00 e8 61 4d fb ff 41 c6 06 01 5b 41"
 # Option « conditions » (assemblé à CODE9) : voir CONDTABLE.
 CODE9_BYTES = bytes.fromhex(
     "31c0488b0d3f3479004885c9747d488b89c00d00004885c9747183fe0275048b410cc383fe0475048b4110c383fe"
@@ -300,6 +334,29 @@ REWARD_FUNCS = [
     (0xfe0110, 0x233b790, bytes.fromhex("e97bb63501909090"),  # gemme (fin d'une coupe)
      "55 48 89 e5 41 57 41 56 41 55 41 54 53 48 83 ec 28 4c 8b 25 70 6f 82 01 48 89 f3 49 89 fd 41 89"),
 ]
+# Podium (option « récompenses ») : la clé n'a pas de point où se poser sur le podium (elle restait cachée derrière le
+# pilote). KEYSPOT remplace l'appel de la table des objets (KEY_CALL) dans getRewardEntityFromRace et cherche aussi le
+# trophée quand ce point est vide ; KEYSPOT2 (KEY_NAME) prend alors le point du trophée. L'objet montré ne change pas.
+KEYSPOT, KEYSPOT2, KEY_CALL, KEY_NAME = 0x2322a00, 0x2322a40, 0x1039e66, 0x1039e90
+KEYSPOT_BYTES = bytes.fromhex("57e88a79c2fe5f4531ff4885c0741d488b48104885c97405803900750f50be02000000e86879c2fe4989c758c3")
+KEYSPOT2_BYTES = bytes.fromhex("4883c3104d85ff7404498d5f104c39e3c3")
+CALL_KEY = bytes.fromhex("e8958b2e01")
+SIG_KEY = "e8 25 05 f1 ff 48 89 c3 48 85 db 74 4a 48 8b 43 18 49 8b 3e 48 85 c0 49 89 06 74 04 f0 ff 40 08"
+CALL_KEY_NAME = bytes.fromhex("e8ab8b2e016690")
+SIG_KEY_NAME = "48 83 c3 10 4c 39 e3 74 24 49 8b 34 24 48 85 f6 75 28 49 c7 04 24 00 00 00 00 48 8b 03 48 85 c0"
+# Cinématique du boss (options « récompenses » et « emplacements ») : le jeu la lançait quand toutes les courses à
+# trophée posées dans le monde étaient gagnées, alors que le garage s'ouvre au nombre de trophées. Le test des courses
+# est sauté (BOSS_SKIP) et BOSSTALK, appelé à la fin du test (BOSS_OK), demande les trophées du garage du monde
+# (BOSSREQ, voir boss_req).
+BOSSTALK, BOSSREQ, BOSS_SKIP, BOSS_OK = 0x2322a80, 0x2322b00, 0xe4c0fc, 0xe4c146
+BOSSTALK_BYTES = bytes.fromhex(
+    "488b1d11464e00488b7db841b6018b45c083f8087329488d0d630000008b0c8185c9741b488b059db37a00488b80c00d00004885c07405"
+    "39480c7d034531f6c3")
+JUMP_BOSS_SKIP = bytes.fromhex("eb07")
+SIG_BOSS_SKIP = "74 07 89 c1 83 e1 02 74 0a 8b 55 c0 21 c3 f6 c3 04 74 8f 48 8b 1d 82 af 9b 01 48 8b 7d b8 45 31"
+CALL_BOSS_OK = bytes.fromhex("e835694d01660f1f840000000000")
+SIG_BOSS_OK = "48 8b 1d 4b af 9b 01 48 8b 7d b8 41 b6 01 48 85 ff 75 c9 eb cc 31 ff 8b 55 c0 e9 02 ff ff ff 45"
+BOSS_AREA = {"t112_roos_tubes": 1, "t133_papus_pyramid": 3, "t142_dragon_mines": 4, "t153_hot_air_skyway": 5}
 JUMP_GETALL = bytes.fromhex("e99b3f3001909090")
 SIG_GETALL = "55 48 89 e5 41 57 41 56 41 55 41 54 53 48 83 ec 28 48 8b 05 e8 93 a8 01 49 89 f4 41 89 fd 49 8b"
 CALL_CUP = bytes.fromhex("e829154d01")
@@ -356,11 +413,19 @@ IDXTABLE, IDX_COUNT, MINIMAP = 0x23211c0, 64, 0x2321200
 # Menus de progression (liste des circuits d'un monde, menu Progression) : chaque ligne vient d'un n° de portail donné
 # par 0x1038c50 (portails d'origine du monde, appelée en ROW_CALL par le nœud getHUBZoneIndexForRaceInArea_VSC).
 # ROWMAP l'appelle puis remplace ce n° par celui du portail posé à cet endroit (ROWTABLE) : nom et icônes de la ligne
-# sont ceux du portail qu'on y voit.
+# sont ceux du portail qu'on y voit. Le script de ces lignes n'a d'icône que pour les trophées, clés, reliques, jetons et
+# le défi d'Oxide (ROW_TYPES), et sa boucle sur les objets s'arrête (et saute ensuite des objets) sur un autre type :
+# ROWMAP note le n° rendu (+ 1) dans ROWFLAG, et ROWMASK (appelé en ROW_MASK_AT, lecture des objets du portail dans
+# getAllCollectiblesForIndex) ne garde que ROW_TYPES pour ce n° : une coupe posée sur une ligne montre son nom, sans icône.
 ROWMAP, ROWTABLE, ROW_CALL = 0x2322800, 0x2322900, 0x1116307
-ROWMAP_BYTES = bytes.fromhex("52e84a64d1fe5a8b0283f8207314488d0deb0000000fb604013dff00000074028902c3")
+ROWMASK, ROW_MASK_AT, ROWFLAG = 0x2322940, 0x1037aa5, STATE + 0x500
+ROW_TYPES = 0x407fe
+ROWMAP_BYTES = bytes.fromhex("52e84a64d1fe5a8b0283f8207317488d0deb0000000fb60c0181f9ff000000740489c88902ffc08905d3c38c00c3")
+ROWMASK_BYTES = bytes.fromhex("448b7128418d55013b15b2c28c0075074181e6fe070400c7059fc28c000000000031dbc3")
 CALL_ROW = bytes.fromhex("e8f4c42001")
+CALL_ROW_MASK = bytes.fromhex("e896ae2e0190")
 SIG_ROW = "e8 44 29 f2 ff 48 8b 43 10 8b 55 d4 4c 89 f7 48 8b 70 10 e8 31 6d 36 ff 49 8b 04 24 48 3b 45 d8"
+SIG_ROW_MASK = "44 8b 71 28 31 db 4c 89 65 b8 44 89 6d d4 48 89 45 c0 66 0f 1f 84 00 00 00 00 00 ba 01 00 00 00"
 MINIMAP_INDEX = {  # n° de renvoi de la mini-carte : portail
     1: "t111_crash_cove", 2: "t113_mystery_caves", 3: "t112_roos_tubes", 4: "t114_sewer_speedway",
     5: "a115_skull_rock", 8: "t122_turbo_track", 9: "t121_slide_coliseum", 10: "cup_blue", 11: "cup_red",
@@ -538,6 +603,17 @@ def row_table(locations):
     return bytes(out)
 
 
+def boss_req(conds=None):
+    """BOSSREQ : trophées du garage de chaque monde (n° 1 plage, 3 ruines, 4 glacier, 5 Citadel), d'après les
+    conditions de la graine, sinon ceux du jeu."""
+    bosses = (conds or {}).get("bosses") or {"t112_roos_tubes": 4, "t133_papus_pyramid": 8, "t142_dragon_mines": 12,
+                                             "t153_hot_air_skyway": 16}
+    out = bytearray(32)
+    for zone, trophies in bosses.items():
+        out[4 * BOSS_AREA[zone]:4 * BOSS_AREA[zone] + 4] = trophies.to_bytes(4, "little")
+    return bytes(out)
+
+
 def spot_table():
     """SPOTTABLE : position de l'entité HubZone de chaque emplacement et son monde, par n° de portail."""
     keys = sorted(SPOTS, key=portal_index)
@@ -651,6 +727,8 @@ def patch_xml(plan, rename=False, rewards=None):
             lines += _line(func, jump, sig)
         lines += _line(WON_CALL, CALL_WON, SIG_WON) + _line(MODEL_CALL, CALL_MODEL, SIG_MODEL)
         lines += _line(GETALL, JUMP_GETALL, SIG_GETALL)
+        lines += (_line(KEYSPOT, KEYSPOT_BYTES, SIG_EMPTY) + _line(KEYSPOT2, KEYSPOT2_BYTES, SIG_EMPTY)
+                  + _line(KEY_CALL, CALL_KEY, SIG_KEY) + _line(KEY_NAME, CALL_KEY_NAME, SIG_KEY_NAME))
     if plan.get("conditions"):
         lines += _line(CONDTABLE, cond_table(plan["conditions"]), SIG_EMPTY) + _line(CODE9, CODE9_BYTES, SIG_EMPTY)
         for func, _, jump, sig in COND_FUNCS:
@@ -661,9 +739,19 @@ def patch_xml(plan, rename=False, rewards=None):
                   + _line(IDXTABLE, idx_table(plan["locations"]), SIG_EMPTY) + _line(MINIMAP, MINIMAP_BYTES, SIG_EMPTY)
                   + _line(IGZ_FINISH, JUMP_IGZ, SIG_IGZ)
                   + _line(ROWMAP, ROWMAP_BYTES, SIG_EMPTY) + _line(ROWTABLE, row_table(plan["locations"]), SIG_EMPTY)
-                  + _line(ROW_CALL, CALL_ROW, SIG_ROW))
+                  + _line(ROWMASK, ROWMASK_BYTES, SIG_EMPTY)
+                  + _line(ROW_CALL, CALL_ROW, SIG_ROW) + _line(ROW_MASK_AT, CALL_ROW_MASK, SIG_ROW_MASK))
+    if rewards or (plan.get("locations") and any(pad != spot for pad, spot in plan["locations"].items())):
+        lines += (_line(BOSSTALK, BOSSTALK_BYTES, SIG_EMPTY)
+                  + _line(BOSSREQ, boss_req(plan.get("conditions")), SIG_EMPTY)
+                  + _line(BOSS_SKIP, JUMP_BOSS_SKIP, SIG_BOSS_SKIP) + _line(BOSS_OK, CALL_BOSS_OK, SIG_BOSS_OK))
     if plan["settings"].get("skip_hints"):
         lines += _line(CODE10, CODE10_BYTES, SIG_EMPTY) + _line(PERCENT, JUMP_PERCENT, SIG_PERCENT)
+    if plan["settings"].get("boost_reserve"):
+        lines += (_line(RESERVE, RESERVE_BYTES, SIG_EMPTY) + _line(RESERVE_START, RESERVE_START_BYTES, SIG_EMPTY)
+                  + _line(TIMING_START, TIMING_START_BYTES, SIG_EMPTY) + _line(RATIO_CALL, CALL_RATIO, SIG_RATIO)
+                  + _line(STOP_DRIFT, CALL_STOP_DRIFT, SIG_STOP_DRIFT) + _line(STOP_START, CALL_STOP_START, SIG_STOP_START)
+                  + _line(START_TIMING, CALL_START_TIMING, SIG_START_TIMING))
     if plan.get("cups"):
         lines += (_line(CUPMAP, cup_map(plan["cups"]), SIG_EMPTY) + _line(CODE8, CODE8_BYTES, SIG_EMPTY)
                   + _line(CUP_CALL, CALL_CUP, SIG_CUP))
@@ -684,6 +772,9 @@ def signature_sites():
     sites = [(LOADMAP, SIG_LOADMAP), (REWARD, SIG_REWARD), (REWARDED, SIG_REWARDED), (HUBNAME, SIG_HUBNAME),
              (BANNER, SIG_BANNER), (RECALC, SIG_RECALC), (WON_CALL, SIG_WON), (MODEL_CALL, SIG_MODEL),
              (GETALL, SIG_GETALL), (CUP_CALL, SIG_CUP), (PERCENT, SIG_PERCENT),
-             (IGZ_FINISH, SIG_IGZ), (ROW_CALL, SIG_ROW)]
+             (IGZ_FINISH, SIG_IGZ), (ROW_CALL, SIG_ROW), (ROW_MASK_AT, SIG_ROW_MASK), (KEY_CALL, SIG_KEY),
+             (KEY_NAME, SIG_KEY_NAME),
+             (BOSS_SKIP, SIG_BOSS_SKIP), (BOSS_OK, SIG_BOSS_OK), (RATIO_CALL, SIG_RATIO), (STOP_DRIFT, SIG_STOP_DRIFT),
+             (STOP_START, SIG_STOP_START), (START_TIMING, SIG_START_TIMING)]
     sites += [(func, sig) for func, _, _, sig in REWARD_FUNCS + COND_FUNCS]
     return [(address, bytes.fromhex(sig.replace(" ", ""))) for address, sig in sites]
