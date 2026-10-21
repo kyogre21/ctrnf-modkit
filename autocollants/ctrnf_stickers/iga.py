@@ -30,6 +30,13 @@ class Archive:
 
     def __init__(self, path):
         self.f = open(path, 'rb')
+        try:
+            self._read_index(path)
+        except Exception:
+            self.f.close()  # sinon le fichier reste verrouillé sous Windows
+            raise
+
+    def _read_index(self, path):
         head = self.f.read(0x38)
         (_, version, _, count, self.sector, _, _, n32, n16, n8, names_pos, names_size, _) = struct.unpack(
             '<4sIIIIIIIIIQII', head)
@@ -94,7 +101,8 @@ def write(files, out):
         raise ValueError('deux noms de même empreinte')
     div = 0xffffffff // count
     slop = max(abs(i - h // div) for i, h in enumerate(hashes))
-    pos, places = SECTOR, []
+    start = -(-(0x38 + 20 * count) // SECTOR) * SECTOR  # après l'en-tête (plus d'un secteur dès 100 fichiers)
+    pos, places = start, []
     for n in names:  # données dans l'ordre des noms, chacune alignée sur un secteur
         places.append(pos)
         pos += -(-len(files[n]) // SECTOR) * SECTOR
@@ -111,7 +119,7 @@ def write(files, out):
     head = struct.pack('<4sIIIIIIIIIQII', b'IGA\x1a', 13, 20 * count, count, SECTOR, div, slop, 0, 0, 0, names_at,
                        len(name_block), 1)
     data = bytearray(head + struct.pack(f'<{count}I', *hashes) + entries)
-    data = data.ljust(SECTOR, b'\0')
+    data = data.ljust(start, b'\0')
     for i, n in enumerate(names):
         data = data.ljust(places[i], b'\0') + files[n]
     data = data.ljust(names_at, b'\0') + name_block

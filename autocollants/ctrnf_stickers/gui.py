@@ -1,6 +1,7 @@
 """Petit logiciel des autocollants : choisir le dossier du jeu, choisir un autocollant, le remplacer par une image.
 Lancement : python -m ctrnf_stickers"""
 from pathlib import Path
+import struct
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -25,22 +26,28 @@ def checker(w, h, step=8):
 
 
 class App(ttk.Frame):
-    def __init__(self, root):
+    def __init__(self, root, context=None):
+        """root : la fenêtre (logiciel autonome) ou, avec `context`, l'onglet du CTRNF Mod Kit qui la reçoit : le
+        dossier (celui du port) et les réglages viennent alors du kit."""
         super().__init__(root, padding=10)
-        self.root = root
-        root.title(TITLE)
-        root.minsize(900, 600)
-        self.grid(sticky='nsew')
-        root.columnconfigure(0, weight=1)
-        root.rowconfigure(0, weight=1)
+        self.root = root.winfo_toplevel()
+        self.context = context
+        if context is None:
+            root.title(TITLE)
+            root.minsize(900, 600)
+            self.grid(sticky='nsew')
+            root.columnconfigure(0, weight=1)
+            root.rowconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
         self.rowconfigure(1, weight=1)
-        conf = core.load_config()
+        conf = context.module_config() if context else core.load_config()
         self.game = None
         self.shown = []  # noms courts affichés dans la liste, dans l'ordre
         self.photos = {}  # garde les images des aperçus (sinon tkinter les perd)
 
-        self.folder = tk.StringVar(value=conf.get('folder', ''))
+        self.folder = context.port_var if context else tk.StringVar(value=conf.get('folder', ''))
+        if context:
+            context.on_port_change(self.load)
         self.kind = tk.StringVar(value='stickers')
         self.cutout = tk.BooleanVar(value=conf.get('cutout', False))
         self.with_icon = tk.BooleanVar(value=conf.get('icon', True))
@@ -57,11 +64,14 @@ class App(ttk.Frame):
     def build_game(self):
         box = ttk.LabelFrame(self, text='Jeu', padding=8)
         box.columnconfigure(0, weight=1)
-        ttk.Entry(box, textvariable=self.folder).grid(row=0, column=0, sticky='ew')
-        ttk.Button(box, text='Parcourir…', command=self.browse).grid(row=0, column=1, padx=(6, 0))
+        ttk.Entry(box, textvariable=self.folder, state='readonly' if self.context else 'normal').grid(
+            row=0, column=0, sticky='ew')
+        if not self.context:
+            ttk.Button(box, text='Parcourir…', command=self.browse).grid(row=0, column=1, padx=(6, 0))
         self.game_label = ttk.Label(box, text='')
         self.game_label.grid(row=1, column=0, columnspan=2, sticky='w', pady=(4, 0))
-        ttk.Label(box, text='Le dossier du jeu (celui qui contient « archives »), ou le dossier du port.',
+        ttk.Label(box, text="Dossier du port, choisi dans l'Accueil du kit." if self.context else
+                  'Le dossier du jeu (celui qui contient « archives »), ou le dossier du port.',
                   foreground='#555').grid(row=2, column=0, columnspan=2, sticky='w')
         return box
 
@@ -121,6 +131,8 @@ class App(ttk.Frame):
     # --- jeu ---
 
     def browse(self):
+        if self.context:  # le dossier commun du kit est celui du port : il se change dans l'Accueil
+            return
         folder = filedialog.askdirectory(title='Dossier du jeu', initialdir=self.folder.get() or None)
         if folder:
             self.folder.set(folder)
@@ -131,8 +143,9 @@ class App(ttk.Frame):
         text = self.folder.get().strip()
         if text:
             try:
-                self.game = core.Game(core.find_archives(text))
-            except (ValueError, OSError) as error:
+                found = self.context.archives() if self.context else None
+                self.game = core.Game(found or core.find_archives(text))
+            except (ValueError, OSError, struct.error) as error:  # archive vide ou abîmée comprise
                 self.game_label.configure(text=f'✗ {error}', foreground='#b00')
             else:
                 self.game_label.configure(text=f'✓ {self.game.folder}', foreground='#070')
@@ -277,7 +290,7 @@ class App(ttk.Frame):
             return
         try:
             self.game.restore_all()
-        except OSError as error:
+        except (OSError, ValueError) as error:
             messagebox.showerror(TITLE, f'Impossible de supprimer {core.OURS} : {error}')
             return
         self.fill()
@@ -299,8 +312,11 @@ class App(ttk.Frame):
         self.say(f'Enregistré : {path}')
 
     def save(self):
-        core.save_config({'folder': self.folder.get().strip(), 'cutout': self.cutout.get(),
-                          'icon': self.with_icon.get()})
+        values = {'folder': self.folder.get().strip(), 'cutout': self.cutout.get(), 'icon': self.with_icon.get()}
+        if self.context:
+            self.context.save_module_config(values)
+        else:
+            core.save_config(values)
 
     def say(self, text):
         self.status.configure(text=text)

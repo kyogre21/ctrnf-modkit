@@ -46,6 +46,14 @@ Good to know
 With Python 3.10 or newer installed, you can also run the source code: « Lancer les autocollants.bat ».
 Building the exe: « Construire exe.bat » (output in dist).
 
+What's new
+----------
+0.1.1
+- Fixed: from about 50 replaced stickers (100 files with the icons), update3.pak was damaged and « Tout remettre
+  d'origine » (Restore everything) stopped working. Update, then replace the affected stickers again.
+- « Tout remettre d'origine » never deletes an update3.pak that does not belong to this tool.
+- The tool can also be used inside the CTRNF Mod Kit (one tab).
+
 This repository contains no game files: you must own the game.
 
 License: MIT (LICENSE file).

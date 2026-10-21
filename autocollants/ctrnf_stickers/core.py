@@ -12,13 +12,9 @@ import sys
 
 from . import iga, texture
 from .icons import ICONS
+from .names import ARCHIVES, ICON, ICON_TAG, OURS, STICKER, is_ours  # noqa: F401
+from .names import short as _short
 
-OURS = 'update3.pak'
-ARCHIVES = ('stickers.pak', 'update.pak', 'update2.pak')  # de la plus ancienne à la plus récente
-STICKER = ('textures/ColorMap,textures@!actors!Octane!Vehicles!Stickers!', '`tga,111.igz')
-ICON = ('textures/GuiStandard_diffuse,textures@!ui!Octane!Customization!Icons!octane_ui_custo_ico_kart_sticker_',
-        '`tga,101.igz')
-ICON_TAG = 'ico_'  # nom court des icônes du menu : ico_<n> (ex. ico_133 = drapeau France)
 CONFIG = Path.home() / '.ctrnf_stickers.json'
 
 
@@ -29,22 +25,18 @@ def find_archives(folder):
     candidates = [folder, folder / 'archives']
     ini = folder / 'launcher.ini'
     if ini.is_file():
-        for line in ini.read_text(encoding='utf-8', errors='replace').splitlines():
+        game = ''
+        for line in ini.read_text(encoding='utf-8-sig', errors='replace').splitlines():
             key, _, value = line.partition('=')
-            if key.strip() == 'game_dir' and value.strip():
-                candidates.append(Path(value.strip()) / 'archives')
+            if key.strip() == 'game_dir':
+                game = value.strip().strip('"')  # clé en double : la dernière compte (comme le kit)
+        if game:
+            candidates.append(Path(game) / 'archives')
     for c in candidates:
         if all((c / name).is_file() for name in ARCHIVES):
             return c
     raise ValueError('archives du jeu introuvables (il faut le dossier qui contient stickers.pak, update.pak et '
                      'update2.pak, le dossier du jeu au-dessus, ou le dossier du port)')
-
-
-def _short(name):
-    for (start, end), tag in ((STICKER, ''), (ICON, ICON_TAG)):
-        if name.startswith(start) and name.endswith(end):
-            return tag + name[len(start):-len(end)]
-    return None
 
 
 class Game:
@@ -122,7 +114,11 @@ class Game:
             self.restore_all()
 
     def restore_all(self):
-        (self.folder / OURS).unlink(missing_ok=True)
+        """Supprime update3.pak, seulement s'il est à nous (ValueError sinon)."""
+        path = self.folder / OURS
+        if path.exists() and not is_ours(path):
+            raise ValueError(f"{path} n'est pas une archive de cet outil : elle n'est pas supprimée")
+        path.unlink(missing_ok=True)
 
 
 def game_running():

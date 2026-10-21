@@ -44,6 +44,14 @@ Bon à savoir
 Avec Python 3.10 ou plus récent installé, on peut aussi lancer le code source : « Lancer les autocollants.bat ».
 Fabriquer l'exe : « Construire exe.bat » (résultat dans dist).
 
+Nouveautés
+----------
+0.1.1
+- Corrigé : à partir d'environ 50 autocollants remplacés (100 fichiers avec les icônes), update3.pak était abîmé et
+  « Tout remettre d'origine » ne marchait plus. Mettez à jour, puis remplacez à nouveau les autocollants concernés.
+- « Tout remettre d'origine » ne supprime jamais un update3.pak qui n'est pas à cet outil.
+- L'outil s'utilise aussi dans le CTRNF Mod Kit (un onglet).
+
 Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 
 Licence : MIT (fichier LICENSE).
