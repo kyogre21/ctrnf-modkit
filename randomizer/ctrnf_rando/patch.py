@@ -40,6 +40,9 @@ cinématiques d'ouverture des portes que les clés de la partie ouvrent déjà.
 
 Option « réserve » : hors dérapage, la barre de dérapage classique montre la réserve de boost.
 
+Option « reliques » : en course aux reliques, la cible sous le chrono commence au platine, puis passe à l'or quand le
+chrono dépasse le temps platine, puis au saphir (le texte change ; l'icône reste celle du platine).
+
 Option « emplacements » : les portails (courses, arènes, coupes, Slide, Turbo) changent de place entre eux ; le
 patch déplace leurs objets au chargement des cartes du hub, avant que le jeu les construise.
 
@@ -244,6 +247,43 @@ CALL_STOP_START = bytes.fromhex("e853654a01")
 SIG_STOP_START = "e8 73 0b fb ff c6 83 89 00 00 00 01 48 89 df 8b b3 8c 00 00 00 e8 0e 54 fb ff 49 8b 04 24 48 3b"
 CALL_START_TIMING = bytes.fromhex("e8c65e4a01")
 SIG_START_TIMING = "e8 d6 64 fc ff c6 83 89 00 00 00 00 48 89 df 8b b3 8c 00 00 00 e8 61 4d fb ff 41 c6 06 01 5b 41"
+# Option « reliques » (assemblé à RELIC, outil tools/relic_hud.py du dépôt d'étude) : la mise en place du HUD des
+# reliques (0xe649e0) appelle RELIC_START à la place du calcul du temps du palier visé (START_AT) : palier platine, et
+# note le CRacerHudComponent, le palier et la zone dans RSTATE. Les nœuds de script getRaceClockTime(AsString)_VSC,
+# lus à chaque image par le HUD du chrono, passent par RELIC_TICKF / RELIC_TICKS : en course aux reliques, si le chrono
+# dépasse le temps du palier affiché, le palier passe à l'or, puis au saphir, et un événement
+# CGuiEventRelicRaceTargetTime (palier et texte de son temps) est envoyé au HUD, comme le jeu le fait au départ. Le
+# script du HUD montre alors le groupe (icône + texte) du palier reçu sans cacher les autres : showPlaceable_VSC passe
+# par RELIC_SHOW (SHOW_AT), qui, en course aux reliques, cache le groupe de palier montré avant (même parent)
+# comme le fait hidePlaceable_VSC. Le destructeur du HUD (RELIC_DTOR) fait oublier le HUD et le groupe notés. Le palier
+# visé du jeu (gm+0xd50, utilisé par les récompenses) n'est jamais modifié.
+RELIC, RSTATE = 0x2323400, STATE + 0x600
+RELIC_BYTES = bytes.fromhex(
+    "554889e5534154415541564883ec10e87c1ed3fec5fa1145d8488b1de0b88c004885db0f843f010000488d05f041"
+    "26004839030f8519010000488b0508aa7a004885c00f841f01000083b84c0d0000030f8512010000448b25abb88c"
+    "004183fc100f84010100004c8b2da2b88c004d85ed0f84f10000004c89ef4489e6e87e26b4fec5fa104dd8c5f82e"
+    "c8761c4183fc08750841bc20000000ebdc4183fc20750841bc10000000ebce443b2558b88c000f84b20000004489"
+    "254bb88c004c89ef4489e6e83826b4fec5fa1145dc31ffe86cd7ddfe4885c00f848b0000004989c64589662048c7"
+    "45d000000000488d7dd0c5fa1045dce83608b4fe49837e18007547488b45d049894618488b43604885c074368b08"
+    "f7c100000010740f488d7b60e87bc717ff488b43608b08f7c1000000207515488b78284885ff740c488b074c89f6"
+    "ff90b00000004c89f7e8109d17ffeb1648c705a3b78c000000000048c705b0b78c0000000000c5fa1045d84883c4"
+    "10415e415d415c5b5dc341bd080000004c893579b78c0044892d7ab78c0048891d7bb78c004889df4489ee4883ec"
+    "08e85c25b4fe4883c408c3483b3d50b78c00751648c70543b78c000000000048c70550b78c0000000000554889e5"
+    "53504889fbe9a350b4fe4883ec08e821feffff4883c408c357e816feffff5fe9101ed3fe515256488b0d4ea87a00"
+    "4885c90f848600000083b94c0d000003757d48833decb68c0000747348837b2800756c488b73404885f67463488b"
+    "76504885f6745a488b76284881fe00000100724d48b95b5361707068697248390e753e48b969726554696d655d48"
+    "394e06752e488b15b6b68c0048891dafb68c004885d2741b4839da7416488b4a40483b4b40750c488b0a483b0b75"
+    "04804a0d14b8ffebffff23430c0d001000005e5a59c3")
+RELIC_START_AT, RELIC_START = 0xe64c4f, bytes.fromhex("e826e94b01660f1f440000")
+SIG_RELIC_START = "48 89 df 44 89 ee e8 a6 0e 00 00 49 8b 3c 24 8b 1d 54 08 c0 01 c5 fa 11 45 94 80 7f 6c 00 0f 84"
+RELIC_DTOR_AT, RELIC_DTOR = 0xe68670, bytes.fromhex("e934af4b0190909090")
+SIG_RELIC_DTOR = "55 48 89 e5 53 50 48 89 fb 48 8d 05 a0 ef 71 01 48 89 03 48 8b 4b 78 48 85 c9 74 2c b8 ff ff ff"
+RELIC_TICKF_AT, RELIC_TICKF = 0x11936fd, bytes.fromhex("e8d4fe1801")
+SIG_RELIC_TICKF = "e8 8e 1b ec ff 48 8b 43 10 4c 89 f7 48 8b 30 e8 9f 7e 2e ff 5b 41 5e 5d c3 90 90 90 90 90 90 90"
+RELIC_TICKS_AT, RELIC_TICKS = 0x119374d, bytes.fromhex("e892fe1801")
+SIG_RELIC_TICKS = "e8 ae 1c ec ff 48 8b 43 10 48 8b 5d d8 4c 89 f7 48 8b 30 48 89 da e8 98 1c 2e ff 48 85 db 74 13"
+RELIC_SHOW_AT, RELIC_SHOW = 0x26f794, bytes.fromhex("e8573e0b020f1f840000000000")
+SIG_RELIC_SHOW = "b8 ff eb ff ff 23 43 0c 0d 00 10 00 00 89 43 0c 48 89 df e8 e4 af 29 01 48 8b 7d d8 e8 db af 29"
 # Option « conditions » (assemblé à CODE9) : voir CONDTABLE.
 CODE9_BYTES = bytes.fromhex(
     "31c0488b0d3f3479004885c9747d488b89c00d00004885c9747183fe0275048b410cc383fe0475048b4110c383fe"
@@ -755,6 +795,10 @@ def patch_xml(plan, rename=False, rewards=None):
                   + _line(TIMING_START, TIMING_START_BYTES, SIG_EMPTY) + _line(RATIO_CALL, CALL_RATIO, SIG_RATIO)
                   + _line(STOP_DRIFT, CALL_STOP_DRIFT, SIG_STOP_DRIFT) + _line(STOP_START, CALL_STOP_START, SIG_STOP_START)
                   + _line(START_TIMING, CALL_START_TIMING, SIG_START_TIMING))
+    if plan["settings"].get("relic_targets"):
+        lines += (_line(RELIC, RELIC_BYTES, SIG_EMPTY) + _line(RELIC_START_AT, RELIC_START, SIG_RELIC_START)
+                  + _line(RELIC_DTOR_AT, RELIC_DTOR, SIG_RELIC_DTOR) + _line(RELIC_TICKF_AT, RELIC_TICKF, SIG_RELIC_TICKF)
+                  + _line(RELIC_TICKS_AT, RELIC_TICKS, SIG_RELIC_TICKS) + _line(RELIC_SHOW_AT, RELIC_SHOW, SIG_RELIC_SHOW))
     if plan.get("cups"):
         lines += (_line(CUPMAP, cup_map(plan["cups"]), SIG_EMPTY) + _line(CODE8, CODE8_BYTES, SIG_EMPTY)
                   + _line(CUP_CALL, CALL_CUP, SIG_CUP))
@@ -778,6 +822,8 @@ def signature_sites():
              (IGZ_FINISH, SIG_IGZ), (ROW_CALL, SIG_ROW), (ROW_MASK_AT, SIG_ROW_MASK), (KEY_CALL, SIG_KEY),
              (KEY_NAME, SIG_KEY_NAME),
              (BOSS_SKIP, SIG_BOSS_SKIP), (BOSS_OK, SIG_BOSS_OK), (RATIO_CALL, SIG_RATIO), (STOP_DRIFT, SIG_STOP_DRIFT),
-             (STOP_START, SIG_STOP_START), (START_TIMING, SIG_START_TIMING)]
+             (STOP_START, SIG_STOP_START), (START_TIMING, SIG_START_TIMING),
+             (RELIC_START_AT, SIG_RELIC_START), (RELIC_DTOR_AT, SIG_RELIC_DTOR), (RELIC_TICKF_AT, SIG_RELIC_TICKF),
+             (RELIC_TICKS_AT, SIG_RELIC_TICKS), (RELIC_SHOW_AT, SIG_RELIC_SHOW)]
     sites += [(func, sig) for func, _, _, sig in REWARD_FUNCS + COND_FUNCS]
     return [(address, bytes.fromhex(sig.replace(" ", ""))) for address, sig in sites]

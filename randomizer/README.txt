@@ -64,6 +64,12 @@ Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 
 Nouveautés
 ----------
+0.4.0
+- Onglet « Confort », nouvelle case (cochée par défaut) : en course aux reliques, la cible affichée sous le chrono
+  commence au temps platine. Quand votre chrono le dépasse, elle passe au temps or, puis au temps saphir, avec
+  l'icône et la couleur du palier. Les récompenses ne changent pas.
+- Le code de partage contient cette option. Les codes faits avec la 0.3.x restent lisibles.
+
 0.3.1
 - Corrigé : dans une aventure toute neuve (avant le premier redémarrage du jeu), une course gagnée pouvait ne rien
   donner : la course restait proposée et l'objet n'arrivait pas. Ça arrivait quand le portail lance un circuit

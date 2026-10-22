@@ -4,12 +4,14 @@ from dataclasses import replace
 
 from .generator import CHALLENGE_MODES, CUP_MODES, ORIGINS, PAD_MODES, Settings
 
-FORMAT = 1                                      # change si le contenu du code change
+FORMAT = 2                                      # change si le contenu du code change
 ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # base 32 de Crockford : ni I, L, O ni U
 LOOKALIKE = str.maketrans("ILO", "110")
 # (champ de Settings, valeurs possibles) dans l'ordre du code ; un booléen prend 1 bit, un choix 2 bits
-FLAGS = ("shuffle_tracks", "allow_duplicates", "shuffle_arenas", "shuffle_rewards", "skip_hints", "boost_reserve",
-         "fast_podiums", "shuffle_locations")
+FLAGS_V1 = ("shuffle_tracks", "allow_duplicates", "shuffle_arenas", "shuffle_rewards", "skip_hints", "boost_reserve",
+            "fast_podiums", "shuffle_locations")
+FLAGS_BY_FORMAT = {1: FLAGS_V1, 2: FLAGS_V1 + ("relic_targets",)}  # format 2 : option « reliques » (0.4.0)
+FLAGS = FLAGS_BY_FORMAT[FORMAT]
 CHOICES = (("shuffle_cups", CUP_MODES), ("pad_conditions", PAD_MODES), ("challenges", CHALLENGE_MODES))
 
 # Préréglages : (nom, aide, réglages du tirage). Les options de confort ne sont pas touchées.
@@ -45,7 +47,7 @@ def encode(seed, settings, rename):
         number = number << 1 | bool(value)
     for field, modes in CHOICES:
         number = number << 2 | modes.index(getattr(settings, field))
-    number = (number << 32 | seed) << 4 | FORMAT  # 18 bits de réglages, 32 de graine, 4 de format : 54 bits
+    number = (number << 32 | seed) << 4 | FORMAT  # 19 bits de réglages, 32 de graine, 4 de format : 55 bits
     chars = [ALPHABET[number >> 5 * i & 31] for i in reversed(range(11))]
     text = "".join(chars)
     text += _check(text)
@@ -62,7 +64,8 @@ def decode(code):
     number = 0
     for c in text[:11]:
         number = number << 5 | ALPHABET.index(c)
-    if number & 15 != FORMAT:
+    version = number & 15
+    if version not in FLAGS_BY_FORMAT:
         raise ValueError("code fait avec une autre version du randomizer")
     number >>= 4
     seed = number & 0xFFFFFFFF
@@ -78,7 +81,7 @@ def decode(code):
         if number & 1:
             origins.insert(0, origin)
         number >>= 1
-    for field in reversed(FLAGS):
+    for field in reversed(FLAGS_BY_FORMAT[version]):
         values[field] = bool(number & 1)
         number >>= 1
     rename = bool(number & 1)

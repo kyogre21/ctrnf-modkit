@@ -22,3 +22,4 @@ modkit/build.log
 build/
 dist/
 modkit/dist_new/
+modkit/dist_*/

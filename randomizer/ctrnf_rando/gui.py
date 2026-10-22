@@ -43,6 +43,9 @@ HELP = {
              "d'un boss).",
     "reserve": "Hors dérapage, la barre de dérapage (style classique, celle de CTR) montre votre réserve de boost : elle "
                "se remplit quand vous enchaînez les turbos et se vide quand la réserve s'épuise (pleine = 5 s ou plus).",
+    "relics": "En course aux reliques, la cible affichée sous le chrono commence au temps platine ; quand votre "
+              "chrono le dépasse, elle passe au temps or, puis au temps saphir (avec l'icône et la couleur du palier). "
+              "Les récompenses ne changent pas.",
     "podiums": "Au podium, l'écran « appuyez pour passer » s'ouvre dès le début au lieu d'attendre la fin de "
                "l'animation (posé dans le dossier du jeu : archives/update_hub3.pak). Si vous ne passez pas, le "
                "podium garde sa dernière pose.",
@@ -92,6 +95,7 @@ class App(ttk.Frame):
         self.hints = tk.BooleanVar(value=conf.get("hints", True))
         self.reserve = tk.BooleanVar(value=conf.get("reserve", True))
         self.podiums = tk.BooleanVar(value=conf.get("podiums", True))
+        self.relics = tk.BooleanVar(value=conf.get("relics", True))
         self.locations = tk.BooleanVar(value=conf.get("locations", False))
 
         self.build_game().grid(row=0, column=0, sticky="ew")
@@ -218,6 +222,8 @@ class App(ttk.Frame):
                                     variable=self.reserve), "reserve").grid(row=2, column=0, sticky="w")
         self.helped(ttk.Checkbutton(page, text="Pouvoir passer les podiums dès le début", variable=self.podiums),
                     "podiums").grid(row=3, column=0, sticky="w")
+        self.helped(ttk.Checkbutton(page, text="Reliques : viser le platine, puis l'or, puis le saphir pendant la course",
+                                    variable=self.relics), "relics").grid(row=4, column=0, sticky="w")
         return tabs
 
     def build_bottom(self):
@@ -264,7 +270,8 @@ class App(ttk.Frame):
                         shuffle_rewards=self.rewards.get(), shuffle_cups=self.cups.get(),
                         pad_conditions=self.pads.get(), challenges=self.challenges.get(),
                         skip_hints=self.hints.get(), shuffle_locations=self.locations.get(),
-                        boost_reserve=self.reserve.get(), fast_podiums=self.podiums.get())
+                        boost_reserve=self.reserve.get(), fast_podiums=self.podiums.get(),
+                        relic_targets=self.relics.get())
 
     def apply(self, settings):
         """Remet dans la fenêtre les réglages d'un Settings."""
@@ -280,6 +287,7 @@ class App(ttk.Frame):
         self.hints.set(settings.skip_hints)
         self.reserve.set(settings.boost_reserve)
         self.podiums.set(settings.fast_podiums)
+        self.relics.set(settings.relic_targets)
         self.locations.set(settings.shuffle_locations)
 
     def preset(self, name, values):
@@ -314,7 +322,7 @@ class App(ttk.Frame):
                 "arenas": self.arenas.get(), "names": self.names.get(), "rewards": self.rewards.get(),
                 "cups": self.cups.get(), "pads": self.pads.get(), "challenges": self.challenges.get(),
                 "hints": self.hints.get(), "locations": self.locations.get(), "reserve": self.reserve.get(),
-                "podiums": self.podiums.get()}
+                "podiums": self.podiums.get(), "relics": self.relics.get()}
 
     def generate(self):
         if not self.check_port():

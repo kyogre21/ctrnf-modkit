@@ -62,6 +62,12 @@ This repository contains no game files: you must own the game.
 
 What's new
 ----------
+0.4.0
+- « Confort » (comfort) tab, new box (ticked by default): in relic races, the target shown under the timer starts
+  at the platinum time. Once your timer goes past it, it switches to the gold time, then to the sapphire time, with
+  that tier's icon and colour. Rewards do not change.
+- The share code includes this option. Codes made with 0.3.x can still be read.
+
 0.3.1
 - Fixed: in a brand-new adventure (before the game was restarted once), a race you won could give nothing: the race
   was still offered and the item never came. It happened when the warp pad launches an Adventure track whose own

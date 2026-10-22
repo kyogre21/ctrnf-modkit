@@ -26,6 +26,7 @@ class Settings:
     skip_hints: bool = False           # confort : indices d'Aku Aku et cinématiques des portes ouvertes marqués comme vus
     boost_reserve: bool = False        # confort : hors dérapage, la barre de dérapage montre la réserve de boost
     fast_podiums: bool = False         # confort : podium passable dès le début (archive update_hub3.pak)
+    relic_targets: bool = False        # confort : cible des reliques en course platine, puis or, puis saphir
     shuffle_locations: bool = False    # emplacements des portails (courses, arènes, coupes, Slide, Turbo) mélangés
 
 
