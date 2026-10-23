@@ -41,7 +41,7 @@ cinématiques d'ouverture des portes que les clés de la partie ouvrent déjà.
 Option « réserve » : hors dérapage, la barre de dérapage classique montre la réserve de boost.
 
 Option « reliques » : en course aux reliques, la cible sous le chrono commence au platine, puis passe à l'or quand le
-chrono dépasse le temps platine, puis au saphir (le texte change ; l'icône reste celle du platine).
+chrono dépasse le temps platine, puis au saphir (avec l'icône et la couleur du palier).
 
 Option « emplacements » : les portails (courses, arènes, coupes, Slide, Turbo) changent de place entre eux ; le
 patch déplace leurs objets au chargement des cartes du hub, avant que le jeu les construise.
@@ -53,6 +53,8 @@ Le code des détours ne dépend pas de la graine ; il est assemblé une fois pou
 outils de vérification dans le dépôt d'étude). Seules les tables changent.
 Adresses : position dans `eboot.elf` du port + 0x400000 (base des patchs du port).
 """
+import re
+
 from .data import CUP_PADS, CUPS
 
 EBOOT_BASE = 0x400000
@@ -739,10 +741,55 @@ def _line(address, data, signature):
         for at in range(0, len(data), MAX_WRITE))
 
 
-def patch_xml(plan, rename=False, rewards=None):
+COMFORT = ("skip_hints", "boost_reserve", "relic_targets")  # options de confort écrites dans le patch
+
+
+def comfort_lines(settings):
+    """Lignes des options de confort cochées dans `settings` ({option: bool}) : elles ne dépendent ni de la graine ni
+    du reste du patch (Randomizer.xml ou Confort.xml)."""
+    lines = ""
+    if settings.get("skip_hints"):
+        lines += _line(CODE10, CODE10_BYTES, SIG_EMPTY) + _line(PERCENT, JUMP_PERCENT, SIG_PERCENT)
+    if settings.get("boost_reserve"):
+        lines += (_line(RESERVE, RESERVE_BYTES, SIG_EMPTY) + _line(RESERVE_START, RESERVE_START_BYTES, SIG_EMPTY)
+                  + _line(TIMING_START, TIMING_START_BYTES, SIG_EMPTY) + _line(RATIO_CALL, CALL_RATIO, SIG_RATIO)
+                  + _line(STOP_DRIFT, CALL_STOP_DRIFT, SIG_STOP_DRIFT) + _line(STOP_START, CALL_STOP_START, SIG_STOP_START)
+                  + _line(START_TIMING, CALL_START_TIMING, SIG_START_TIMING))
+    if settings.get("relic_targets"):
+        lines += (_line(RELIC, RELIC_BYTES, SIG_EMPTY) + _line(RELIC_START_AT, RELIC_START, SIG_RELIC_START)
+                  + _line(RELIC_DTOR_AT, RELIC_DTOR, SIG_RELIC_DTOR) + _line(RELIC_TICKF_AT, RELIC_TICKF, SIG_RELIC_TICKF)
+                  + _line(RELIC_TICKS_AT, RELIC_TICKS, SIG_RELIC_TICKS) + _line(RELIC_SHOW_AT, RELIC_SHOW, SIG_RELIC_SHOW))
+    return lines
+
+
+def comfort_addresses():
+    """Adresses (telles qu'écrites dans un patch) de toutes les lignes de confort."""
+    return set(re.findall(r'Address="(0x[0-9a-f]+)"', comfort_lines(dict.fromkeys(COMFORT, True))))
+
+
+def _document(name, version, comment, lines):
+    """Un fichier de patch du port (un seul patch `name`), avec `comment` en tête."""
+    return ('<?xml version="1.0" encoding="utf-8"?>\n'
+            f'<!-- {comment}-->\n'
+            '<Patch>\n    <TitleID>\n        <ID>CUSA13795</ID>\n    </TitleID>\n'
+            f'    <Metadata Title="Crash Team Racing Nitro-Fueled" Name="{name}" Author="kyogre21"\n'
+            f'              PatchVer="{version}" AppVer="01.21" AppElf="eboot.bin" isEnabled="true">\n'
+            '        <PatchList>\n' + lines + '        </PatchList>\n    </Metadata>\n</Patch>\n')
+
+
+def comfort_xml(settings, version):
+    """Le fichier `Confort.xml` : les options de confort seules, sans randomizer. Le commentaire garde la liste des
+    options cochées (relue par comfort.read_settings)."""
+    chosen = " ".join(k for k in COMFORT if settings.get(k))
+    return _document("Confort", version, f"CTR Nitro-Fueled Mod Kit {version}, options de confort.\n"
+                                         f"     options: {chosen}\n", comfort_lines(settings))
+
+
+def patch_xml(plan, rename=False, rewards=None, comfort=True):
     """Le fichier `Randomizer.xml` de cette graine, à poser dans le dossier `patches` du port.
     rename : au hub, chaque portail affiche le nom du niveau qu'il charge.
-    rewards : [(zone, bits, position du compteur)] des récompenses mélangées (voir rewards.patch_rows)."""
+    rewards : [(zone, bits, position du compteur)] des récompenses mélangées (voir rewards.patch_rows).
+    comfort : False quand Confort.xml s'en charge (aucune ligne de confort dans ce patch)."""
     pairs = swaps(plan)
     targets = [t for _, t in pairs]
     if len(set(targets)) != len(targets):
@@ -788,29 +835,16 @@ def patch_xml(plan, rename=False, rewards=None):
         lines += (_line(BOSSTALK, BOSSTALK_BYTES, SIG_EMPTY)
                   + _line(BOSSREQ, boss_req(plan.get("conditions")), SIG_EMPTY)
                   + _line(BOSS_SKIP, JUMP_BOSS_SKIP, SIG_BOSS_SKIP) + _line(BOSS_OK, CALL_BOSS_OK, SIG_BOSS_OK))
-    if plan["settings"].get("skip_hints"):
-        lines += _line(CODE10, CODE10_BYTES, SIG_EMPTY) + _line(PERCENT, JUMP_PERCENT, SIG_PERCENT)
-    if plan["settings"].get("boost_reserve"):
-        lines += (_line(RESERVE, RESERVE_BYTES, SIG_EMPTY) + _line(RESERVE_START, RESERVE_START_BYTES, SIG_EMPTY)
-                  + _line(TIMING_START, TIMING_START_BYTES, SIG_EMPTY) + _line(RATIO_CALL, CALL_RATIO, SIG_RATIO)
-                  + _line(STOP_DRIFT, CALL_STOP_DRIFT, SIG_STOP_DRIFT) + _line(STOP_START, CALL_STOP_START, SIG_STOP_START)
-                  + _line(START_TIMING, CALL_START_TIMING, SIG_START_TIMING))
-    if plan["settings"].get("relic_targets"):
-        lines += (_line(RELIC, RELIC_BYTES, SIG_EMPTY) + _line(RELIC_START_AT, RELIC_START, SIG_RELIC_START)
-                  + _line(RELIC_DTOR_AT, RELIC_DTOR, SIG_RELIC_DTOR) + _line(RELIC_TICKF_AT, RELIC_TICKF, SIG_RELIC_TICKF)
-                  + _line(RELIC_TICKS_AT, RELIC_TICKS, SIG_RELIC_TICKS) + _line(RELIC_SHOW_AT, RELIC_SHOW, SIG_RELIC_SHOW))
+    if comfort:
+        lines += comfort_lines(plan["settings"])
     if plan.get("cups"):
         lines += (_line(CUPMAP, cup_map(plan["cups"]), SIG_EMPTY) + _line(CODE8, CODE8_BYTES, SIG_EMPTY)
                   + _line(CUP_CALL, CALL_CUP, SIG_CUP))
     listing = "".join(f"     {s} -> {t}\n" for s, t in pairs)
-    return ('<?xml version="1.0" encoding="utf-8"?>\n'
-            f'<!-- CTR Nitro-Fueled Randomizer {plan["version"]}, graine {plan["seed"]}.\n'
-            '     Remplace le niveau chargé derrière chaque portail et donne la récompense au portail.\n'
-            f'{listing}-->\n'
-            '<Patch>\n    <TitleID>\n        <ID>CUSA13795</ID>\n    </TitleID>\n'
-            '    <Metadata Title="Crash Team Racing Nitro-Fueled" Name="Randomizer" Author="kyogre21"\n'
-            f'              PatchVer="{plan["version"]}" AppVer="01.21" AppElf="eboot.bin" isEnabled="true">\n'
-            '        <PatchList>\n' + lines + '        </PatchList>\n    </Metadata>\n</Patch>\n')
+    return _document("Randomizer", plan["version"],
+                     f'CTR Nitro-Fueled Randomizer {plan["version"]}, graine {plan["seed"]}.\n'
+                     '     Remplace le niveau chargé derrière chaque portail et donne la récompense au portail.\n'
+                     f'{listing}', lines)
 
 
 def signature_sites():

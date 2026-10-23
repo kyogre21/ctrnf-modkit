@@ -5,15 +5,20 @@ elles remplacent quelques scripts du jeu sans toucher à ses fichiers (supprimer
   3 paliers de relique sont gagnés (chaque palier est un lieu à part ; le jeu cochait dès le premier).
 - `update_hub3.pak` (confort « podiums ») : l'écran « appuyez pour passer » du podium s'ouvre dès le début, l'animation
   du podium garde sa vitesse (après elle, le podium garde sa dernière pose).
+- `update5.pak` (confort « Recommencer / Continuer ») : menu de fin des courses relique (voir relic_menu.py).
 
-Chaque script est lu dans l'archive du jeu du joueur, vérifié (empreinte SHA-256) et modifié de quelques octets ; aucun
-fichier du jeu n'est copié dans ce dépôt. `update3.pak` appartient à l'outil des autocollants (ctrnf-stickers) : on n'y
-touche jamais.
+Chaque script est lu dans l'archive du jeu du joueur, vérifié (empreinte SHA-256) et modifié ; aucun fichier du jeu
+n'est copié dans ce dépôt. `update3.pak` appartient à l'outil des autocollants (ctrnf-stickers) : quand il manque et
+qu'une archive plus loin dans la chaîne en a besoin, un bouche-trou sans effet prend sa place (voir fix_chain) ; les
+autocollants le remplacent.
 """
 import hashlib
 import lzma
 from pathlib import Path
 import struct
+
+from . import relic_menu
+from .i18n import tr
 
 SECTOR = 0x800
 CHUNK = 0x8000
@@ -27,6 +32,23 @@ class Script:
         self.name = name
         self.sha256 = sha256      # empreinte du script d'origine (jeu v1.21)
         self.changes = changes    # [(position dans le fichier, octet d'origine, nouvel octet)]
+        self.names = [name]
+
+    def files(self, folder):
+        """{nom: contenu} de notre archive, d'après les archives du jeu dans `folder`."""
+        return {self.name: patched(self, extract(Path(folder) / self.source, self.name))}
+
+
+class Bundle:
+    """Archive à nous faite de plusieurs fichiers du jeu modifiés par `module.build` (voir relic_menu.py)."""
+
+    def __init__(self, archive, module):
+        self.archive = archive
+        self.module = module
+        self.names = sorted(module.SOURCES)
+
+    def files(self, folder):
+        return self.module.build(lambda pak, name: extract(Path(folder) / pak, name))
 
 
 # Mini-carte : dans le test des reliques (platine, puis or, puis saphir), « gagné » passe au palier suivant et « pas
@@ -42,6 +64,14 @@ PODIUM = Script("update_hub3.pak", "update_hub2.pak", "vsc/Octane/H100_Hub/Hub_S
                 [(0x1add4, 0x40, 0xe0), (0x1add5, 0x50, 0x4d), (0x1aec2, 0x01, 0x00), (0x2ce9c, 0xb8, 0xc0),
                  (0x2ce9d, 0x4c, 0x4f)])
 SCRIPTS = (MINIMAP, PODIUM)
+# Reliques (confort) : « Recommencer / Continuer » à la fin de chaque course relique. Les fichiers de course ne se
+# remplacent que par la chaîne updateN (pas par update_hubN).
+RELIC = Bundle("update5.pak", relic_menu)
+
+# Le jeu lit update3.pak, update4.pak, update5.pak… dans l'ordre et s'arrête au premier absent : une place vide
+# avant l'une des nôtres reçoit une archive « bouche-trou » (un fichier du jeu recopié à l'identique, sans effet).
+CHAIN = ("update3.pak", "update4.pak", "update5.pak")  # autocollants, mini-carte, reliques
+FILLER = ("update2.pak", "models/LevelAssets/Basic/box.hkx")
 
 
 def game_archives(port):
@@ -155,39 +185,70 @@ def pak_bytes(files):
 
 def patched(script, data):
     if hashlib.sha256(data).hexdigest() != script.sha256:
-        raise ValueError(f"{script.name} : version du jeu inattendue (il faut CUSA13795 v1.21)")
+        raise ValueError(tr("{file} : version du jeu inattendue (il faut CUSA13795 v1.21)", file=script.name))
     out = bytearray(data)
     for at, old, new in script.changes:
         out[at] = new
     return bytes(out)
 
 
-def ours(path, script):
-    """L'archive en `path` est-elle la nôtre (rien d'autre que le script de `script`) ?"""
+def _names(path):
     try:
-        return [e[0] for e in read_archive(path)[0]] == [script.name]
+        return sorted(e[0] for e in read_archive(path)[0])
     except (OSError, ValueError, struct.error):
-        return False
+        return None
 
 
-def install(folder, wanted):
-    """Écrit (ou retire) nos archives dans le dossier `archives` du jeu. wanted : scripts voulus.
+def ours(path, script):
+    """L'archive en `path` est-elle la nôtre (rien d'autre que les fichiers de `script`) ?"""
+    return _names(path) == sorted(script.names)
+
+
+def is_filler(path):
+    return _names(path) == [FILLER[1]]
+
+
+def fix_chain(folder):
+    """Bouche-trous posés dans les places vides avant la dernière de nos archives de la chaîne, et retirés au-delà.
+    Rend [(archive, ce qui a été fait)]."""
+    paths = [Path(folder) / name for name in CHAIN]
+    top = max((i for i, p in enumerate(paths) if p.exists() and not is_filler(p)), default=-1)
+    done = []
+    for i, path in enumerate(paths):
+        if i < top and not path.exists():
+            try:
+                data = extract(Path(folder) / FILLER[0], FILLER[1])
+            except (OSError, ValueError, struct.error):  # archive du jeu illisible : on n'invente rien
+                continue
+            tmp = path.with_suffix(".tmp")
+            tmp.write_bytes(pak_bytes({FILLER[1]: data}))
+            tmp.replace(path)
+            done.append((path.name, "bouche-trou posé"))
+        elif i > top and path.exists() and is_filler(path):
+            path.unlink()
+            done.append((path.name, "bouche-trou retiré"))
+    return done
+
+
+def install(folder, wanted, managed=SCRIPTS):
+    """Écrit (ou retire) nos archives dans le dossier `archives` du jeu. wanted : scripts voulus ; managed : scripts
+    dont on s'occupe (les autres ne sont pas touchés : podiums rapides réglés par Confort.xml, voir comfort.py).
     Rend [(archive, « posée » | « retirée »)]. Une archive du même nom qui n'est pas la nôtre n'est jamais touchée."""
     folder = Path(folder)
     done = []
-    for script in SCRIPTS:
+    for script in managed:
         target = folder / script.archive
-        if target.exists() and not ours(target, script):
+        if target.exists() and not ours(target, script) and not (script.archive in CHAIN and is_filler(target)):
             if script in wanted:
-                raise ValueError(f"{target} existe déjà et n'est pas une archive du randomizer : rien n'est écrit")
+                raise ValueError(tr("{file} existe déjà et n'est pas une archive du randomizer : rien n'est écrit", file=target))
             continue
         if script in wanted:
-            data = patched(script, extract(folder / script.source, script.name))
+            files = script.files(folder)
             tmp = target.with_suffix(".tmp")  # jamais d'archive à moitié écrite, même si le jeu tourne
-            tmp.write_bytes(pak_bytes({script.name: data}))
+            tmp.write_bytes(pak_bytes(files))
             tmp.replace(target)
             done.append((script.archive, "posée"))
-        elif target.exists():
+        elif target.exists() and not is_filler(target):
             target.unlink()
             done.append((script.archive, "retirée"))
-    return done
+    return done + fix_chain(folder)

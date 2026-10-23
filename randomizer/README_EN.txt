@@ -62,6 +62,13 @@ This repository contains no game files: you must own the game.
 
 What's new
 ----------
+0.5.0
+- Fixed: without stickers (no archives\update3.pak), the game never loaded the relic minimap (archives\update4.pak),
+  because it stops at the first missing "updateN" archive. A "placeholder" (a game file copied unchanged, no effect)
+  now fills the empty slot; it is removed once it is no longer needed.
+- In the Mod Kit: the interface is also available in English, and the Comfort tab offers "Restart / Continue" at
+  the end of every relic race (archives\update5.pak).
+
 0.4.0
 - « Confort » (comfort) tab, new box (ticked by default): in relic races, the target shown under the timer starts
   at the platinum time. Once your timer goes past it, it switches to the gold time, then to the sapphire time, with

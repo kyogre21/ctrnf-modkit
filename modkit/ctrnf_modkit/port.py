@@ -5,6 +5,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+from .i18n import tr
+
 ARCHIVES = ("stickers.pak", "update.pak", "update2.pak")  # présentes dans tout dossier archives du jeu
 LAUNCHER_NAMES = ("CTR-NitroFueled-PC.exe", "Crash™ Team Racing Nitro-Fueled.exe")
 LAUNCHER_MARK = b"ctr.nitrofueled.pc.launcher"  # nom du manifeste de l'exe du launcher
@@ -74,13 +76,13 @@ def resolve(folder, game_dir_override=None, launcher_override=None):
     """PortInfo du dossier choisi (rien n'est écrit)."""
     info = PortInfo()
     if not str(folder or "").strip():
-        info.messages = ["Choisissez le dossier du port."]
+        info.messages = [tr("Choisissez le dossier du port.")]
         return info
     folder = info.folder = Path(str(folder).strip())
     if not (folder / "bin" / GAME_PROCESS).is_file():
-        info.messages.append("ce n'est pas le dossier du port (bin/sacredfire.exe introuvable)")
+        info.messages.append(tr("ce n'est pas le dossier du port (bin/sacredfire.exe introuvable)"))
     if not (folder / "patches").is_dir():
-        info.messages.append("dossier « patches » introuvable")
+        info.messages.append(tr("dossier « patches » introuvable"))
     version = folder / "bin" / "VERSION"
     info.version = version.read_text(encoding="utf-8", errors="replace").strip() if version.is_file() else ""
     game = game_dir_override or read_ini(folder / "launcher.ini").get("game_dir", "")
@@ -94,14 +96,14 @@ def resolve(folder, game_dir_override=None, launcher_override=None):
     info.python = python if python.is_file() else None
     info.ok = not info.messages
     if info.ok:
-        info.messages.append(f"port {info.version or 'version inconnue'}")
+        info.messages.append(tr("port {version}", version=info.version or tr("version inconnue")))
         if not info.game_dir:
-            info.messages.append("dossier du jeu non renseigné (launcher.ini, game_dir) : ouvrez une fois le "
-                                 "launcher du port et choisissez le jeu")
+            info.messages.append(tr("dossier du jeu non renseigné (launcher.ini, game_dir) : ouvrez une fois le "
+                                    "launcher du port et choisissez le jeu"))
         elif not info.archives:
-            info.messages.append(f"archives du jeu introuvables dans {info.game_dir}")
+            info.messages.append(tr("archives du jeu introuvables dans {folder}", folder=info.game_dir))
         if not info.launcher:
-            info.messages.append("launcher du port introuvable (démarrage de secours seulement)")
+            info.messages.append(tr("launcher du port introuvable (démarrage de secours seulement)"))
     return info
 
 

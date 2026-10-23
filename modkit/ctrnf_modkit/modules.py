@@ -9,6 +9,7 @@ from pathlib import Path
 import shutil
 
 from . import _paths
+from .i18n import tr
 
 PRESENT, ABSENT, FOREIGN = "posé par le mod", "absent", "étranger (non touché)"
 PUBLISHED_ASL = {  # SHA-256 des versions publiées de CTRNF.asl (à compléter à chaque publication)
@@ -59,14 +60,18 @@ class Module:
 
     def files(self, ctx):
         out = []
+        from ctrnf_rando import archives
         for path, what in self.owned(ctx):
-            state = ABSENT if not path.exists() else PRESENT if self.is_ours(path) else FOREIGN
+            if not path.exists() or (path.name in archives.CHAIN and archives.is_filler(path)):
+                state = ABSENT  # un bouche-trou du kit (voir archives.fix_chain) tient juste la place
+            else:
+                state = PRESENT if self.is_ours(path) else FOREIGN
             out.append(FileState(path, self.name, what, state))
         return out
 
     def status(self, ctx):
         present = [f for f in self.files(ctx) if f.state == PRESENT]
-        return f"{len(present)} fichier(s) posé(s)" if present else "rien d'installé"
+        return tr("{n} fichier(s) posé(s)", n=len(present)) if present else tr("rien d'installé")
 
     def uninstall(self, ctx):
         """Retire nos fichiers. Rend [messages]."""
@@ -89,8 +94,9 @@ class Randomizer(Module):
         if ctx.port.folder:
             out.append((ctx.port.folder / "patches" / "Randomizer.xml", "patch de la graine"))
         if ctx.port.archives:
-            out += [(ctx.port.archives / "update4.pak", "mini-carte des reliques"),
-                    (ctx.port.archives / "update_hub3.pak", "podiums rapides")]
+            out.append((ctx.port.archives / "update4.pak", "mini-carte des reliques"))
+            if not comfort_installed(ctx):  # sinon, les podiums rapides sont réglés par l'onglet Confort
+                out.append((ctx.port.archives / "update_hub3.pak", "podiums rapides"))
         return out
 
     def is_ours(self, path):
@@ -104,10 +110,10 @@ class Randomizer(Module):
     def status(self, ctx):
         xml = ctx.port.folder / "patches" / "Randomizer.xml" if ctx.port.folder else None
         if not xml or not xml.is_file():
-            return "aucune graine installée"
+            return tr("aucune graine installée")
         import re
         seed = re.search(r"graine (\d+)", xml.read_text(encoding="utf-8", errors="replace")[:2000])
-        return f"graine {seed.group(1)} installée" if seed else "graine installée"
+        return tr("graine {seed} installée", seed=seed.group(1)) if seed else tr("graine installée")
 
     def uninstall(self, ctx):
         from ctrnf_rando import archives
@@ -115,9 +121,10 @@ class Randomizer(Module):
         for f in self.files(ctx):
             if f.state == PRESENT and f.path.suffix == ".xml":
                 f.path.unlink()
-                done.append(f"{f.path.name} retiré")
+                done.append(tr("{file} retiré", file=f.path.name))
         if ctx.port.archives:
-            done += [f"{name} {what}" for name, what in archives.install(ctx.port.archives, [])]
+            managed = (archives.MINIMAP,) if comfort_installed(ctx) else archives.SCRIPTS
+            done += [f"{name} {tr(what)}" for name, what in archives.install(ctx.port.archives, [], managed)]
         return done
 
     def warnings(self, ctx):
@@ -126,17 +133,12 @@ class Randomizer(Module):
         xml = files.get("Randomizer.xml")
         orphans = [n for n in ("update4.pak", "update_hub3.pak") if n in files and files[n].state == PRESENT]
         if xml and xml.state == ABSENT and orphans:
-            out.append(f"Archives du randomizer sans graine installée ({', '.join(orphans)}) : faites « Tout "
-                       "désinstaller » ou générez une graine.")
+            out.append(tr("Archives du randomizer sans graine installée ({files}) : faites « Tout désinstaller » "
+                          "ou générez une graine.", files=", ".join(orphans)))
         patches_json = ctx.port.folder / "patches.json" if ctx.port.folder else None
-        if xml and xml.state == PRESENT and patches_json and patches_json.is_file():
-            try:
-                disabled = json.loads(patches_json.read_text(encoding="utf-8")).get("disabled", [])
-            except (OSError, ValueError, AttributeError):
-                disabled = []
-            if "Randomizer.xml/Randomizer" in disabled:
-                out.append("Le patch « Randomizer » est désactivé dans l'onglet des patchs du launcher : la graine "
-                           "ne sera pas appliquée.")
+        if xml and xml.state == PRESENT and "Randomizer.xml/Randomizer" in disabled_patches(ctx):
+            out.append(tr("Le patch « Randomizer » est désactivé dans l'onglet des patchs du launcher : la graine "
+                          "ne sera pas appliquée."))
         return out
 
     def build_tab(self, parent, ctx):
@@ -153,7 +155,7 @@ class Stickers(Module):
             import numpy  # noqa: F401
             import PIL  # noqa: F401
         except ImportError as error:
-            return False, f"{error.name} manquant : pip install -r autocollants/requirements.txt"
+            return False, tr("{name} manquant : pip install -r autocollants/requirements.txt", name=error.name)
         return True, ""
 
     def owned(self, ctx):
@@ -167,10 +169,10 @@ class Stickers(Module):
         from ctrnf_stickers import iga, names
         files = [f for f in self.files(ctx) if f.state == PRESENT]
         if not files:
-            return "aucun autocollant remplacé"
+            return tr("aucun autocollant remplacé")
         with iga.Archive(files[0].path) as a:
             count = sum(1 for n in a.names if (names.short(n) or names.ICON_TAG)[:4] != names.ICON_TAG)
-        return f"{count} autocollant(s) remplacé(s)"
+        return tr("{n} autocollant(s) remplacé(s)", n=count)
 
     def uninstall(self, ctx):
         import datetime
@@ -182,7 +184,7 @@ class Stickers(Module):
                 copy = backup / f"update3_{datetime.datetime.now():%Y-%m-%d_%H%M%S}.pak"
                 shutil.copyfile(f.path, copy)  # les images choisies ne vivent que là : on les garde
                 f.path.unlink()
-                done.append(f"{f.path.name} retiré (copie : {copy})")
+                done.append(tr("{file} retiré (copie : {copy})", file=f.path.name, copy=copy))
         return done
 
     def build_tab(self, parent, ctx):
@@ -230,15 +232,15 @@ class Autosplitter(Module):
 
     def status(self, ctx):
         state = self.up_to_date(ctx)
-        return {None: "pas encore copié", True: "CTRNF.asl copié, à jour",
-                False: "CTRNF.asl copié, version différente"}[state]
+        return tr({None: "pas encore copié", True: "CTRNF.asl copié, à jour",
+                   False: "CTRNF.asl copié, version différente"}[state])
 
     def install(self, ctx, folder, overwrite_modified=False):
         target = Path(folder) / "CTRNF.asl"
         if target.exists() and not self.is_ours(target) and not (overwrite_modified and self.modified(target)):
             if self.modified(target):
-                raise ModuleError(f"{target} est notre script retouché à la main : rien n'est écrit")
-            raise ModuleError(f"{target} existe et n'est pas notre script : rien n'est écrit")
+                raise ModuleError(tr("{file} est notre script retouché à la main : rien n'est écrit", file=target))
+            raise ModuleError(tr("{file} existe et n'est pas notre script : rien n'est écrit", file=target))
         shutil.copyfile(_paths.asl(), target)
         ctx.config.set_module(self.id, {"dest": str(Path(folder))})
         return target
@@ -248,7 +250,7 @@ class Autosplitter(Module):
         for f in self.files(ctx):
             if f.state == PRESENT:
                 f.path.unlink()
-                done.append(f"{f.path.name} retiré de {f.path.parent}")
+                done.append(tr("{file} retiré de {folder}", file=f.path.name, folder=f.path.parent))
         return done
 
     def build_tab(self, parent, ctx):
@@ -256,4 +258,67 @@ class Autosplitter(Module):
         return AutosplitterTab(parent, ctx, self)
 
 
-REGISTRY = (Randomizer(), Stickers(), Autosplitter())
+class Comfort(Module):
+    id, name, package = "comfort", "Confort", "ctrnf_rando"
+    description = "Options de confort sur le jeu d'origine, sans randomizer (reliques, réserve de boost, podiums…)."
+
+    def owned(self, ctx):
+        out = []
+        if ctx.port.folder:
+            out.append((ctx.port.folder / "patches" / "Confort.xml", "options de confort"))
+        if ctx.port.archives and comfort_installed(ctx):  # sans Confort.xml : archive du randomizer
+            out.append((ctx.port.archives / "update_hub3.pak", "podiums rapides"))
+        if ctx.port.archives:
+            out.append((ctx.port.archives / "update5.pak", "Recommencer / Continuer des reliques"))
+        return out
+
+    def is_ours(self, path):
+        from ctrnf_rando import archives, comfort
+        if path.suffix == ".xml":
+            return comfort.is_ours(path)
+        return archives.ours(path, archives.RELIC if path.name == archives.RELIC.archive else archives.PODIUM)
+
+    def status(self, ctx):
+        from ctrnf_rando import comfort
+        values = comfort.read_settings(ctx.port.folder) if ctx.port.folder else None
+        if values is None:
+            return tr("rien d'installé")
+        count = sum(values.values())
+        return tr("{n} option(s) installée(s)", n=count) if count else tr("Confort.xml posé, aucune option")
+
+    def uninstall(self, ctx):
+        from ctrnf_rando import comfort
+        return comfort.uninstall(ctx.port.folder) if ctx.port.folder else []
+
+    def warnings(self, ctx):
+        files = {f.path.name: f for f in self.files(ctx)}
+        xml = files.get("Confort.xml")
+        if xml and xml.state == PRESENT and "Confort.xml/Confort" in disabled_patches(ctx):
+            return [tr("Le patch « Confort » est désactivé dans l'onglet des patchs du launcher : les options de "
+                       "confort ne seront pas appliquées.")]
+        return []
+
+    def build_tab(self, parent, ctx):
+        from .tab_comfort import ComfortTab
+        return ComfortTab(parent, ctx, self)
+
+
+def comfort_installed(ctx):
+    """Confort.xml (à nous) est-il posé ? Alors l'archive des podiums rapides est à l'onglet Confort, sinon au
+    randomizer : chaque fichier n'a qu'un seul mod propriétaire."""
+    from ctrnf_rando import comfort
+    return bool(ctx.port.folder) and comfort.present(ctx.port.folder)
+
+
+def disabled_patches(ctx):
+    """Patchs désactivés dans l'onglet des patchs du launcher (patches.json du port : « fichier/nom »)."""
+    patches_json = ctx.port.folder / "patches.json" if ctx.port.folder else None
+    if not patches_json or not patches_json.is_file():
+        return []
+    try:
+        return json.loads(patches_json.read_text(encoding="utf-8")).get("disabled", [])
+    except (OSError, ValueError, AttributeError):
+        return []
+
+
+REGISTRY = (Randomizer(), Stickers(), Autosplitter(), Comfort())

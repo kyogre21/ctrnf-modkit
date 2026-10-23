@@ -141,6 +141,16 @@ class ConfigTest(unittest.TestCase):
         conf.set_module("randomizer", {"a": 1})
         self.assertEqual(json.loads(config.path().read_text(encoding="utf-8"))["format"], 99)  # pas écrasé
 
+    def test_new_module_enabled_once(self):
+        # réglages d'un kit 0.1.x : le mod Confort n'existait pas, il arrive coché
+        old = {"format": 1, "enabled": ["randomizer"], "modules": {m: {} for m in ("randomizer", "stickers",
+                                                                                 "autosplitter")}}
+        config.path().write_text(json.dumps(old), encoding="utf-8")
+        self.assertEqual(config.Config().data["enabled"], ["randomizer", "comfort"])
+        # décoché ensuite par le joueur : il le reste
+        config.path().write_text(json.dumps({**old, "modules": {**old["modules"], "comfort": {}}}), encoding="utf-8")
+        self.assertEqual(config.Config().data["enabled"], ["randomizer"])
+
     def test_module_values(self):
         conf = config.Config()
         conf.set_module("stickers", {"folder": "x", "port": "y", "version": "z", "cutout": True})
@@ -164,7 +174,7 @@ class ModulesTest(unittest.TestCase):
     def test_no_overlap(self):
         self.ctx.config.data["modules"]["autosplitter"] = {"dest": str(self.base)}
         paths = [p for m in REGISTRY for p, _ in m.owned(self.ctx)]
-        self.assertEqual(len(paths), 5)
+        self.assertEqual(len(paths), 7)
         self.assertEqual(len(paths), len(set(paths)))
         self.assertEqual({m.id for m in REGISTRY}, set(config.MODULES))
 
@@ -246,7 +256,8 @@ class WindowTest(unittest.TestCase):
             win = window.KitWindow(root, conf)
             self.assertIn("par kyogre21", root.title())
             names = [win.notebook.tab(t, "text") for t in win.notebook.tabs()]
-            self.assertEqual(names, ["Accueil", "Randomizer", "Autocollants", "Autosplitter (alpha)", "À propos"])
+            self.assertEqual(names, ["Accueil", "Randomizer", "Autocollants", "Autosplitter (alpha)", "Confort",
+                                    "À propos"])
             for m in REGISTRY:                                  # chaque onglet se construit dans le kit
                 win.notebook.select(win.tabs[m.id])
                 win.build_current()
@@ -256,7 +267,7 @@ class WindowTest(unittest.TestCase):
             self.assertIn("par kyogre21", root.title())       # les mods n'ont pas pris le titre
             rando = win.tabs["randomizer"].winfo_children()[0]
             self.assertIs(rando.port, win.ctx.port_var)         # un seul dossier pour tous
-            self.assertEqual(len(win.files.get_children()), 4)  # 3 fichiers du randomizer, 1 des autocollants
+            self.assertEqual(len(win.files.get_children()), 6)  # randomizer 3, autocollants 1, Confort.xml, update5
             win.toggle(REGISTRY[1], False)
             self.assertNotIn("stickers", conf.data["enabled"])
             self.assertEqual(win.notebook.tab(win.tabs["stickers"], "state"), "hidden")

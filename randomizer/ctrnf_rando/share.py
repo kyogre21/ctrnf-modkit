@@ -3,6 +3,7 @@ lancent exactement la même partie. Une lettre de contrôle repère les fautes d
 from dataclasses import replace
 
 from .generator import CHALLENGE_MODES, CUP_MODES, ORIGINS, PAD_MODES, Settings
+from .i18n import tr
 
 FORMAT = 2                                      # change si le contenu du code change
 ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"  # base 32 de Crockford : ni I, L, O ni U
@@ -41,7 +42,7 @@ def _check(text):
 def encode(seed, settings, rename):
     """Code de partage de la graine `seed` (0 à 2^32 - 1) avec ces réglages et l'option « noms »."""
     if not 0 <= seed < 1 << 32:
-        raise ValueError("graine hors limites")
+        raise ValueError(tr("graine hors limites"))
     number = 0
     for value in [rename] + [getattr(settings, f) for f in FLAGS] + [o in settings.track_origins for o in ORIGINS]:
         number = number << 1 | bool(value)
@@ -58,22 +59,22 @@ def decode(code):
     """(graine, Settings, noms) d'un code de partage. Lève ValueError si le code est faux ou d'une autre version."""
     text = "".join(code.upper().translate(LOOKALIKE).split()).replace("-", "")
     if len(text) != 12 or any(c not in ALPHABET for c in text):
-        raise ValueError("un code de partage a 12 caractères (lettres et chiffres)")
+        raise ValueError(tr("un code de partage a 12 caractères (lettres et chiffres)"))
     if _check(text[:11]) != text[11]:
-        raise ValueError("code mal recopié (la lettre de contrôle ne correspond pas)")
+        raise ValueError(tr("code mal recopié (la lettre de contrôle ne correspond pas)"))
     number = 0
     for c in text[:11]:
         number = number << 5 | ALPHABET.index(c)
     version = number & 15
     if version not in FLAGS_BY_FORMAT:
-        raise ValueError("code fait avec une autre version du randomizer")
+        raise ValueError(tr("code fait avec une autre version du randomizer"))
     number >>= 4
     seed = number & 0xFFFFFFFF
     number >>= 32
     values = {}
     for field, modes in reversed(CHOICES):
         if number & 3 >= len(modes):
-            raise ValueError("code mal recopié")
+            raise ValueError(tr("code mal recopié"))
         values[field] = modes[number & 3]
         number >>= 2
     origins = []
@@ -86,5 +87,5 @@ def decode(code):
         number >>= 1
     rename = bool(number & 1)
     if number >> 1:
-        raise ValueError("code mal recopié")
+        raise ValueError(tr("code mal recopié"))
     return seed, replace(Settings(), track_origins=tuple(origins), **values), rename

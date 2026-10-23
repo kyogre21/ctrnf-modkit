@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass
 import random
 
 from . import __version__, rewards
+from .i18n import tr
 from .data import ARENAS, CRYSTAL_PADS, CUP_PADS, CUPS, HUBS, LEVELS, RACE_PADS, TRACKS
 
 ORIGINS = ("CTR", "CNK", "GP")
@@ -34,10 +35,10 @@ def _draw(rng, pads, pool, shuffle, allow_duplicates):
     if not shuffle:
         return {pad.vanilla: pad.vanilla for pad in pads}
     if not pool:
-        raise ValueError("aucune origine de circuits choisie (CTR, CNK ou GP)")
+        raise ValueError(tr("aucune origine de circuits choisie (CTR, CNK ou GP)"))
     if not allow_duplicates and len(pool) < len(pads):
-        raise ValueError(f"{len(pool)} niveaux pour {len(pads)} portails : autoriser les doublons "
-                         "ou ajouter des origines")
+        raise ValueError(tr("{levels} niveaux pour {pads} portails : autoriser les doublons ou ajouter des origines",
+                            levels=len(pool), pads=len(pads)))
     picked = rng.choices(pool, k=len(pads)) if allow_duplicates else rng.sample(pool, len(pads))
     return {pad.vanilla: level for pad, level in zip(pads, picked)}
 
@@ -83,7 +84,7 @@ def _draw_conditions(rng, settings, tries=300):
             return conds, rewards.shuffle(rng, tries=10, conds=conds)
         except RuntimeError:
             continue
-    raise RuntimeError("impossible de tirer des conditions d'ouverture atteignables (essais épuisés)")
+    raise RuntimeError(tr("impossible de tirer des conditions d'ouverture atteignables (essais épuisés)"))
 
 
 def generate(seed, settings=None):
@@ -100,9 +101,10 @@ def generate(seed, settings=None):
         "crystal_pads": _draw(rng, CRYSTAL_PADS, arenas, settings.shuffle_arenas, settings.allow_duplicates),
     }
     if settings.shuffle_cups not in CUP_MODES:
-        raise ValueError(f"mode de coupes inconnu : {settings.shuffle_cups}")
+        raise ValueError(tr("mode de coupes inconnu : {mode}", mode=settings.shuffle_cups))
     if settings.pad_conditions not in PAD_MODES or settings.challenges not in CHALLENGE_MODES:
-        raise ValueError(f"conditions inconnues : {settings.pad_conditions} / {settings.challenges}")
+        raise ValueError(tr("conditions inconnues : {pads} / {challenges}", pads=settings.pad_conditions,
+                            challenges=settings.challenges))
     placement = None
     if (settings.pad_conditions, settings.challenges) != ("origine", "origine") or settings.shuffle_locations:
         plan["conditions"], placement = _draw_conditions(rng, settings)

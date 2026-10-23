@@ -7,6 +7,8 @@ import re
 import subprocess
 import sys
 
+from .i18n import tr
+
 MODES = {"launcher": "Ouvrir le launcher (recommandé)", "direct": "Démarrer directement (launcher sans fenêtre)",
          "secours": "Démarrage de secours (run.py, sans les réglages du launcher)"}
 SHOWN = ("launcher", "secours")  # « direct » (--play) caché tant qu'il n'est pas validé en jeu
@@ -31,24 +33,24 @@ def plan(info, mode="launcher", direct_arg="--play", env=None):
     """Plan de lancement pour le PortInfo `info`, ou ValueError avec le message à montrer."""
     env = clean_env(dict(os.environ if env is None else env))
     if not info.ok:
-        raise ValueError("Le dossier du port n'est pas bon : voir l'accueil.")
+        raise ValueError(tr("Le dossier du port n'est pas bon : voir l'accueil."))
     if mode in ("launcher", "direct") and info.launcher:
         args = [direct_arg] if mode == "direct" and direct_arg else []
-        return Plan([str(info.launcher)] + args, info.folder, env, f"{MODES[mode]} : {info.launcher.name}", True)
+        return Plan([str(info.launcher)] + args, info.folder, env, f"{tr(MODES[mode])} : {info.launcher.name}", True)
     if mode in ("launcher", "direct") and not info.launcher:
         mode = "secours"
     if not info.game_dir:
-        raise ValueError("Dossier du jeu non renseigné (launcher.ini, game_dir) : ouvrez une fois le launcher du port "
-                         "et choisissez le jeu.")
+        raise ValueError(tr("Dossier du jeu non renseigné (launcher.ini, game_dir) : ouvrez une fois le launcher du "
+                            "port et choisissez le jeu."))
     env["BB_GAME_DIR"] = str(info.game_dir)  # run.py et le .bat chercheraient sinon le jeu dans le dossier du port
     if info.python and (info.folder / "run.py").is_file():
         return Plan([str(info.python), "-X", "utf8", "run.py"], info.folder, env,
-                    f"{MODES['secours']} : python\\python.exe run.py")
+                    f"{tr(MODES['secours'])} : python\\python.exe run.py")
     bat = next(iter(sorted(info.folder.glob("*sin launcher*.bat"))), None)
     if bat:
-        return Plan(["cmd", "/c", str(bat)], info.folder, env, f"{MODES['secours']} : {bat.name}")
-    raise ValueError(f"Launcher du port introuvable dans {info.folder}, et pas de démarrage de secours possible "
-                     "(python\\python.exe ou run.py manquant).")
+        return Plan(["cmd", "/c", str(bat)], info.folder, env, f"{tr(MODES['secours'])} : {bat.name}")
+    raise ValueError(tr("Launcher du port introuvable dans {folder}, et pas de démarrage de secours possible "
+                        "(python\\python.exe ou run.py manquant).", folder=info.folder))
 
 
 def start(p):
@@ -78,9 +80,9 @@ def last_run_summary(folder):
     ours = ("update3.pak", "update4.pak", "update5.pak", "update_hub3.pak", "update_hub4.pak")  # pas celles du jeu
     loaded = [a for a in ours if f"Loading app:/archives/{a}." in text]
     rando = re.search(r"Randomizer\.xml/Randomizer \((\d+) writes\)", text)
-    parts = [f"dernier lancement {when.group(1)}" if when else "dernier lancement"]
-    parts.append("archives chargées : " + (", ".join(loaded) if loaded else "aucune des nôtres"))
-    parts.append(f"randomizer appliqué ({rando.group(1)} écritures)" if rando else "randomizer non appliqué")
+    parts = [tr("dernier lancement {when}", when=when.group(1)) if when else tr("dernier lancement")]
+    parts.append(tr("archives chargées : ") + (", ".join(loaded) if loaded else tr("aucune des nôtres")))
+    parts.append(tr("randomizer appliqué ({n} écritures)", n=rando.group(1)) if rando else tr("randomizer non appliqué"))
     return " ; ".join(parts)
 
 
@@ -103,9 +105,9 @@ EXIT_CODES = {
 
 def code_text(code):
     if code is None:
-        return "pas de code de fin (le jeu tourne encore, ou il a été tué)"
-    meaning = EXIT_CODES.get(code, "erreur inconnue")
-    return f"code {code} ({code:#x}) : {meaning}" if code > 0xFFFF else f"code {code} : {meaning}"
+        return tr("pas de code de fin (le jeu tourne encore, ou il a été tué)")
+    meaning = tr(EXIT_CODES.get(code, "erreur inconnue"))
+    return tr("code {code} : {meaning}", code=f"{code} ({code:#x})" if code > 0xFFFF else code, meaning=meaning)
 
 
 def last_run_report(folder, lines=40):

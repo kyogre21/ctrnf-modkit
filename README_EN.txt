@@ -12,6 +12,7 @@ The Mod Kit
 CTRNF-ModKit.exe gathers every mod in one window: pick the port folder once, enable the mods you want (one tab per
 mod), see the files they placed, uninstall everything in one click, then "Lancer le jeu" (Launch the game), which
 opens the port's official launcher. If the game crashes, the kit shows a readable report to copy.
+The kit is in English or French ("Language" list at the top right).
 Source code: modkit folder.
 
 The mods
@@ -23,6 +24,9 @@ The mods
   Program: CTRNF-Stickers.exe. Guide: autocollants\README_EN.txt.
 - LiveSplit autosplitter, ALPHA version (autosplitter folder): splits automatically during Adventure mode. Very
   early development. Guide: autosplitter\README_EN.txt.
+- Comfort (Mod Kit tab): the randomizer's comfort options on the original game, without a seed (relic race target
+  per tier, boost reserve, fast podiums, Aku Aku hints), and "Restart / Continue" at the end of every relic race
+  (won or lost), to try for a better tier without going back to the hub. Your game and saves do not change.
 Each mod's program is still available on its own, but the Mod Kit contains them all.
 
 Download
@@ -37,7 +41,13 @@ The mods are made to work together. None of them modifies the game files: each o
 in the game's archives folder, and they never overlap:
 - stickers: archives\update3.pak;
 - randomizer: archives\update4.pak (relic minimap) and archives\update_hub3.pak (fast podiums),
-  plus patches\Randomizer.xml in the port folder.
+  plus patches\Randomizer.xml in the port folder;
+- comfort: patches\Confort.xml, archives\update_hub3.pak (fast podiums) and archives\update5.pak
+  (Restart / Continue). When Confort.xml is there, its settings replace the seed's comfort settings (no option is
+  applied twice).
+The game reads update3.pak, update4.pak then update5.pak in order and stops at the first missing one: when a slot
+is empty before one of these archives (no stickers, for example), the kit places a "placeholder" there (a game file
+copied unchanged, no effect), removed once it is no longer needed.
 
 This repository contains no game files: you must own the game.
 

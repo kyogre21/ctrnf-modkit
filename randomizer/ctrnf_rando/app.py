@@ -8,7 +8,8 @@ import sys
 
 from . import __version__
 from .generator import generate, spoiler
-from . import archives
+from . import archives, comfort
+from .i18n import tr
 from .patch import patch_xml, signature_sites
 from .rewards import patch_rows
 
@@ -23,25 +24,26 @@ def check_port(folder):
     folder = Path(folder)
     problems = []
     if not (folder / "bin" / "sacredfire.exe").is_file() and not (folder / "bin" / "VERSION").is_file():
-        problems.append("ce n'est pas le dossier du port (bin/sacredfire.exe introuvable)")
+        problems.append(tr("ce n'est pas le dossier du port (bin/sacredfire.exe introuvable)"))
     if not (folder / "patches").is_dir():
-        problems.append("dossier « patches » introuvable")
+        problems.append(tr("dossier « patches » introuvable"))
     eboot = folder / "out" / "eboot.elf"
     if not eboot.is_file():
-        problems.append("jeu pas encore préparé : lancez-le une fois avec le port (out/eboot.elf introuvable)")
+        problems.append(tr("jeu pas encore préparé : lancez-le une fois avec le port (out/eboot.elf introuvable)"))
     else:
         data = eboot.read_bytes()
         wrong = [hex(a) for a, sig in signature_sites()
                  if data[EBOOT_CODE_OFFSET + a:EBOOT_CODE_OFFSET + a + len(sig)] != sig]
         if wrong:
-            problems.append(f"version du jeu inattendue (il faut CUSA13795 v1.21) : {len(wrong)} endroit(s) différent(s)")
+            problems.append(tr("version du jeu inattendue (il faut CUSA13795 v1.21) : {n} endroit(s) différent(s)",
+                                n=len(wrong)))
     version = folder / "bin" / "VERSION"
-    found = version.read_text(encoding="utf-8", errors="replace").strip() if version.is_file() else "inconnue"
+    found = version.read_text(encoding="utf-8", errors="replace").strip() if version.is_file() else tr("inconnue")
     if problems:
         return False, problems
-    games = "" if archives.game_archives(folder) else (" (dossier du jeu introuvable dans launcher.ini : podiums "
-                                                        "rapides et mini-carte des reliques indisponibles)")
-    return True, [f"port {found}, jeu CUSA13795 v1.21 vérifié{games}"]
+    games = "" if archives.game_archives(folder) else tr(" (dossier du jeu introuvable dans launcher.ini : podiums "
+                                                           "rapides et mini-carte des reliques indisponibles)")
+    return True, [tr("port {version}, jeu CUSA13795 v1.21 vérifié", version=found) + games]
 
 
 def game_running():
@@ -78,10 +80,11 @@ def install(seed, settings, port, rename=True):
     if target.is_file():
         head = target.read_text(encoding="utf-8", errors="replace")[:4000]
         if 'Name="Randomizer"' not in head or 'Author="kyogre21"' not in head:
-            raise ValueError(f"{target} existe et n'est pas un patch de ce randomizer : rien n'est écrit")
+            raise ValueError(tr("{file} existe et n'est pas un patch de ce randomizer : rien n'est écrit", file=target))
     plan = generate(seed, settings)
     rows = patch_rows(plan["rewards"]) if plan.get("rewards") else None
-    xml = patch_xml(plan, rename=rename, rewards=rows)
+    separate = comfort.present(port)  # Confort.xml (onglet Confort du kit) s'occupe du confort
+    xml = patch_xml(plan, rename=rename, rewards=rows, comfort=not separate)
     out = port / SEEDS_FOLDER
     out.mkdir(parents=True, exist_ok=True)
     (out / f"graine_{seed}.json").write_text(json.dumps(plan, indent=2), encoding="utf-8")
@@ -91,11 +94,18 @@ def install(seed, settings, port, rename=True):
     notes = []
     folder = archives.game_archives(port)
     wanted = wanted_archives(settings)
+    managed = archives.SCRIPTS
+    if separate:
+        managed = tuple(s for s in archives.SCRIPTS if s != archives.PODIUM)
+        wanted = [s for s in wanted if s in managed]
+        notes.append(tr("{file} présent : les options de confort viennent de l'onglet Confort du kit (celles de "
+                        "cette graine ne sont pas posées).", file=comfort.NAME))
     if folder:
-        notes += [f"{name} {what} dans {folder}" for name, what in archives.install(folder, wanted)]
+        notes += [tr("{file} {what} dans {folder}", file=name, what=tr(what), folder=folder)
+                  for name, what in archives.install(folder, wanted, managed)]
     elif wanted:
-        notes.append("Dossier du jeu introuvable (launcher.ini du port, game_dir) : podiums rapides et mini-carte des "
-                     "reliques non installés.")
+        notes.append(tr("Dossier du jeu introuvable (launcher.ini du port, game_dir) : podiums rapides et mini-carte "
+                        "des reliques non installés."))
     return plan, fingerprint(plan, rename), log, notes
 
 

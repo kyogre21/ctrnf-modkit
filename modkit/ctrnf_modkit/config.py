@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 FORMAT = 1
-MODULES = ("randomizer", "stickers", "autosplitter")
+MODULES = ("randomizer", "stickers", "autosplitter", "comfort")
 
 
 def path():
@@ -13,7 +13,7 @@ def path():
 
 
 def defaults():
-    return {"format": FORMAT, "port": "", "game_dir_override": None, "enabled": list(MODULES),
+    return {"format": FORMAT, "language": "fr", "port": "", "game_dir_override": None, "enabled": list(MODULES),
             "launch": {"mode": "launcher", "direct_arg": "--play", "launcher_exe": None},
             "modules": {m: {} for m in MODULES}}
 
@@ -25,9 +25,23 @@ def _read(p):
         return None
 
 
+def system_language():
+    """Première ouverture : français si Windows est en français, sinon anglais."""
+    import locale
+    try:
+        code = locale.getlocale()[0] or ""
+        if not code and os.name == "nt":
+            import ctypes
+            code = locale.windows_locale.get(ctypes.windll.kernel32.GetUserDefaultUILanguage(), "")
+    except Exception:
+        code = ""
+    return "fr" if code.lower().startswith(("fr", "french")) else "en"
+
+
 def migrate_legacy():
     """Réglages repris de ~/.ctrnf_randomizer.json et ~/.ctrnf_stickers.json."""
     data = defaults()
+    data["language"] = system_language()
     rando = _read(Path.home() / ".ctrnf_randomizer.json")
     stickers = _read(Path.home() / ".ctrnf_stickers.json")
     if isinstance(rando, dict):
@@ -52,6 +66,8 @@ def merged(raw):
             else:
                 data[key] = value
     data["enabled"] = [m for m in data["enabled"] if m in MODULES]
+    known = raw.get("modules") if isinstance(raw.get("modules"), dict) else {}
+    data["enabled"] += [m for m in MODULES if m not in known and m not in data["enabled"]]  # mod apparu depuis
     return data
 
 

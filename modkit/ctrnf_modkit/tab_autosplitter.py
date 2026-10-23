@@ -6,6 +6,7 @@ from tkinter import filedialog, messagebox, ttk
 import webbrowser
 
 from . import _paths, theme
+from .i18n import tr
 
 STEPS = ("1. Installer LiveSplit (livesplit.org), version 1.8 ou plus récente.",
          "2. Clic droit sur LiveSplit > « Edit Layout… » > « + » > « Control » > « Scriptable Auto Splitter ».",
@@ -26,53 +27,53 @@ class AutosplitterTab(ttk.Frame):
         self.columnconfigure(1, weight=1)
         conf = ctx.config.module(module.id)
         self.dest = tk.StringVar(master=self, value=conf.get("dest") or "")
-        theme.alpha_banner(self, "Version alpha : tout début de développement. Le départ et les splits trophée / clé "
-                                 "sont à valider en jeu, la fin contre Oxide coupe encore à la cinématique, et il n'y a "
-                                 "pas de retrait des chargements. Vos retours sont les bienvenus !").grid(
+        theme.alpha_banner(self, tr("Version alpha : tout début de développement. Le départ et les splits trophée / "
+                                    "clé sont à valider en jeu, la fin contre Oxide coupe encore à la cinématique, et "
+                                    "il n'y a pas de retrait des chargements. Vos retours sont les bienvenus !")).grid(
             row=0, column=0, columnspan=4, sticky="ew", pady=(0, 10))
-        ttk.Label(self, text="Le script LiveSplit lit la partie en cours (sans rien changer au jeu) et coupe le chrono "
-                             "tout seul pendant le mode Aventure, avec ou sans randomizer.",
+        ttk.Label(self, text=tr("Le script LiveSplit lit la partie en cours (sans rien changer au jeu) et coupe le "
+                                "chrono tout seul pendant le mode Aventure, avec ou sans randomizer."),
                   wraplength=860, justify="left").grid(row=0, column=0, columnspan=4, sticky="w", pady=(60, 0))
-        ttk.Label(self, text="Dossier où copier CTRNF.asl :").grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Label(self, text=tr("Dossier où copier CTRNF.asl :")).grid(row=1, column=0, sticky="w", pady=(10, 0))
         ttk.Entry(self, textvariable=self.dest).grid(row=1, column=1, sticky="ew", padx=6, pady=(10, 0))
-        ttk.Button(self, text="Parcourir…", command=self.browse).grid(row=1, column=2, pady=(10, 0))
+        ttk.Button(self, text=tr("Parcourir…"), command=self.browse).grid(row=1, column=2, pady=(10, 0))
         row = ttk.Frame(self)
         row.grid(row=2, column=0, columnspan=4, sticky="w", pady=(6, 0))
-        ttk.Button(row, text="Copier CTRNF.asl", command=self.copy).pack(side="left")
-        ttk.Button(row, text="Ouvrir le dossier", command=self.open_folder).pack(side="left", padx=6)
-        ttk.Button(row, text="Télécharger LiveSplit", command=lambda: webbrowser.open("https://livesplit.org")).pack(
+        ttk.Button(row, text=tr("Copier CTRNF.asl"), command=self.copy).pack(side="left")
+        ttk.Button(row, text=tr("Ouvrir le dossier"), command=self.open_folder).pack(side="left", padx=6)
+        ttk.Button(row, text=tr("Télécharger LiveSplit"), command=lambda: webbrowser.open("https://livesplit.org")).pack(
             side="left")
         self.state = ttk.Label(self, text="")
         self.state.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
         for r, (title, lines) in enumerate((("Dans LiveSplit", STEPS), ("Réglages du script", SETTINGS),
                                             ("Limites de cette version", LIMITS)), start=4):
-            box = ttk.LabelFrame(self, text=title, padding=8)
+            box = ttk.LabelFrame(self, text=tr(title), padding=8)
             box.grid(row=r, column=0, columnspan=4, sticky="ew", pady=(10, 0))
             for line in lines:
-                ttk.Label(box, text=line, wraplength=840, justify="left").pack(anchor="w")
+                ttk.Label(box, text=tr(line), wraplength=840, justify="left").pack(anchor="w")
         self.update_state()
 
     def browse(self):
-        folder = filedialog.askdirectory(title="Dossier pour CTRNF.asl", initialdir=self.dest.get() or None)
+        folder = filedialog.askdirectory(title=tr("Dossier pour CTRNF.asl"), initialdir=self.dest.get() or None)
         if folder:
             self.dest.set(folder)
 
     def copy(self):
         folder = self.dest.get().strip()
         if not folder or not Path(folder).is_dir():
-            messagebox.showerror("CTRNF Mod Kit", "Choisissez d'abord un dossier existant (par exemple celui de "
-                                                  "LiveSplit).")
+            messagebox.showerror("CTRNF Mod Kit", tr("Choisissez d'abord un dossier existant (par exemple celui de "
+                                                     "LiveSplit)."))
             return
         target = Path(folder) / "CTRNF.asl"
         overwrite = self.module.modified(target) and messagebox.askyesno(
-            "CTRNF Mod Kit", f"{target} est le script du kit retouché à la main. Le remplacer par la version du kit "
-                             "(vos changements seront perdus) ?")
+            "CTRNF Mod Kit", tr("{file} est le script du kit retouché à la main. Le remplacer par la version du kit "
+                                "(vos changements seront perdus) ?", file=target))
         try:
             target = self.module.install(self.ctx, folder, overwrite_modified=overwrite)
         except Exception as error:  # ModuleError ou OSError : on montre le message
-            messagebox.showerror("CTRNF Mod Kit", f"Copie impossible : {error}")
+            messagebox.showerror("CTRNF Mod Kit", tr("Copie impossible : {error}", error=error))
             return
-        self.ctx.say(f"CTRNF.asl copié : {target}")
+        self.ctx.say(tr("CTRNF.asl copié : {file}", file=target))
         self.update_state()
 
     def open_folder(self):
@@ -82,7 +83,7 @@ class AutosplitterTab(ttk.Frame):
 
     def update_state(self):
         if not _paths.asl().is_file():
-            self.state.configure(text="✗ CTRNF.asl introuvable dans le kit.", foreground=theme.BAD)
+            self.state.configure(text=tr("✗ CTRNF.asl introuvable dans le kit."), foreground=theme.BAD)
             return
-        self.state.configure(text=f"Version du script : {self.module.version()} ; "
-                                  f"{self.module.status(self.ctx)}.", foreground=theme.MUTED)
+        self.state.configure(text=tr("Version du script : {version} ; {state}.", version=self.module.version(),
+                                     state=self.module.status(self.ctx)), foreground=theme.MUTED)

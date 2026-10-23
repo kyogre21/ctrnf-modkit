@@ -8,11 +8,12 @@ from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 
 from . import __version__, core
+from .i18n import tr
 
 TITLE = f'CTR Nitro-Fueled Autocollants {__version__}'
 PREVIEW = 200  # côté des aperçus, en pixels
 ICON_PREVIEW = 110
-IMAGES = [('Images', '*.png *.jpg *.jpeg *.bmp *.gif *.webp *.tga'), ('Tous les fichiers', '*.*')]
+IMAGES = [('Images', '*.png *.jpg *.jpeg *.bmp *.gif *.webp *.tga'), ('Tous les fichiers', '*.*')]  # traduits à l'usage
 
 
 def checker(w, h, step=8):
@@ -62,25 +63,25 @@ class App(ttk.Frame):
         self.load()
 
     def build_game(self):
-        box = ttk.LabelFrame(self, text='Jeu', padding=8)
+        box = ttk.LabelFrame(self, text=tr('Jeu'), padding=8)
         box.columnconfigure(0, weight=1)
         ttk.Entry(box, textvariable=self.folder, state='readonly' if self.context else 'normal').grid(
             row=0, column=0, sticky='ew')
         if not self.context:
-            ttk.Button(box, text='Parcourir…', command=self.browse).grid(row=0, column=1, padx=(6, 0))
+            ttk.Button(box, text=tr('Parcourir…'), command=self.browse).grid(row=0, column=1, padx=(6, 0))
         self.game_label = ttk.Label(box, text='')
         self.game_label.grid(row=1, column=0, columnspan=2, sticky='w', pady=(4, 0))
-        ttk.Label(box, text="Dossier du port, choisi dans l'Accueil du kit." if self.context else
-                  'Le dossier du jeu (celui qui contient « archives »), ou le dossier du port.',
+        ttk.Label(box, text=tr("Dossier du port, choisi dans l'Accueil du kit.") if self.context else
+                  tr('Le dossier du jeu (celui qui contient « archives »), ou le dossier du port.'),
                   foreground='#555').grid(row=2, column=0, columnspan=2, sticky='w')
         return box
 
     def build_list(self):
         box = ttk.Frame(self)
         box.rowconfigure(3, weight=1)
-        ttk.Radiobutton(box, text='Autocollants du kart', value='stickers', variable=self.kind,
+        ttk.Radiobutton(box, text=tr('Autocollants du kart'), value='stickers', variable=self.kind,
                         command=self.fill).grid(row=0, column=0, sticky='w')
-        ttk.Radiobutton(box, text='Icônes du menu', value='icons', variable=self.kind,
+        ttk.Radiobutton(box, text=tr('Icônes du menu'), value='icons', variable=self.kind,
                         command=self.fill).grid(row=1, column=0, sticky='w')
         ttk.Entry(box, textvariable=self.search).grid(row=2, column=0, columnspan=2, sticky='ew', pady=(6, 4))
         self.listbox = tk.Listbox(box, width=44, activestyle='none', exportselection=False)
@@ -89,41 +90,41 @@ class App(ttk.Frame):
         bar.grid(row=3, column=1, sticky='ns')
         self.listbox.configure(yscrollcommand=bar.set)
         self.listbox.bind('<<ListboxSelect>>', lambda _: self.show())
-        ttk.Label(box, text='● = remplacé', foreground='#555').grid(row=4, column=0, sticky='w', pady=(4, 0))
+        ttk.Label(box, text=tr('● = remplacé'), foreground='#555').grid(row=4, column=0, sticky='w', pady=(4, 0))
         return box
 
     def build_view(self):
-        box = ttk.LabelFrame(self, text='Autocollant', padding=8)
-        self.name_label = ttk.Label(box, text='Choisissez un autocollant dans la liste.', font=('', 10, 'bold'))
+        box = ttk.LabelFrame(self, text=tr('Autocollant'), padding=8)
+        self.name_label = ttk.Label(box, text=tr('Choisissez un autocollant dans la liste.'), font=('', 10, 'bold'))
         self.name_label.grid(row=0, column=0, columnspan=2, sticky='w')
         self.size_label = ttk.Label(box, text='', foreground='#555')
         self.size_label.grid(row=1, column=0, columnspan=2, sticky='w', pady=(0, 8))
         self.views = {}
         for col, (key, text, side) in enumerate((('current', 'Dans le jeu', PREVIEW), ('original', "D'origine", PREVIEW),
                                                  ('icon', 'Icône du menu', ICON_PREVIEW))):
-            ttk.Label(box, text=text).grid(row=2, column=col, sticky='w')
+            ttk.Label(box, text=tr(text)).grid(row=2, column=col, sticky='w')
             view = tk.Canvas(box, width=side, height=side, highlightthickness=1, highlightbackground='#999',
                              background='white')
             view.grid(row=3, column=col, sticky='nw', padx=(0, 10))
             self.views[key] = view
         buttons = ttk.Frame(box)
         buttons.grid(row=4, column=0, columnspan=3, sticky='w', pady=(10, 0))
-        self.replace_button = ttk.Button(buttons, text='Remplacer par une image…', command=self.replace)
+        self.replace_button = ttk.Button(buttons, text=tr('Remplacer par une image…'), command=self.replace)
         self.replace_button.grid(row=0, column=0)
-        self.restore_button = ttk.Button(buttons, text="Remettre l'original", command=self.restore)
+        self.restore_button = ttk.Button(buttons, text=tr("Remettre l'original"), command=self.restore)
         self.restore_button.grid(row=0, column=1, padx=(6, 0))
-        self.export_button = ttk.Button(buttons, text='Enregistrer en PNG…', command=self.export)
+        self.export_button = ttk.Button(buttons, text=tr('Enregistrer en PNG…'), command=self.export)
         self.export_button.grid(row=0, column=2, padx=(6, 0))
-        ttk.Checkbutton(box, text="Détourer l'image (enlever le fond uni autour du dessin, puis recadrer)",
+        ttk.Checkbutton(box, text=tr("Détourer l'image (enlever le fond uni autour du dessin, puis recadrer)"),
                         variable=self.cutout, command=self.save).grid(row=5, column=0, columnspan=3, sticky='w',
                                                                       pady=(8, 0))
-        ttk.Checkbutton(box, text='Remplacer aussi son icône dans le menu de personnalisation',
+        ttk.Checkbutton(box, text=tr('Remplacer aussi son icône dans le menu de personnalisation'),
                         variable=self.with_icon, command=self.save).grid(row=6, column=0, columnspan=3, sticky='w')
-        ttk.Label(box, text="L'image est ajustée à la taille de l'autocollant sans être déformée ; la transparence "
-                            "(PNG) est gardée. Les changements comptent au prochain lancement du jeu.",
+        ttk.Label(box, text=tr("L'image est ajustée à la taille de l'autocollant sans être déformée ; la "
+                               "transparence (PNG) est gardée. Les changements comptent au prochain lancement du jeu."),
                   foreground='#555', wraplength=540, justify='left').grid(row=7, column=0, columnspan=3, sticky='w',
                                                                           pady=(10, 0))
-        ttk.Button(box, text="Tout remettre d'origine", command=self.restore_all).grid(
+        ttk.Button(box, text=tr("Tout remettre d'origine"), command=self.restore_all).grid(
             row=8, column=0, columnspan=3, sticky='w', pady=(16, 0))
         self.set_buttons(None)
         return box
@@ -133,7 +134,7 @@ class App(ttk.Frame):
     def browse(self):
         if self.context:  # le dossier commun du kit est celui du port : il se change dans l'Accueil
             return
-        folder = filedialog.askdirectory(title='Dossier du jeu', initialdir=self.folder.get() or None)
+        folder = filedialog.askdirectory(title=tr('Dossier du jeu'), initialdir=self.folder.get() or None)
         if folder:
             self.folder.set(folder)
             self.load()
@@ -151,7 +152,7 @@ class App(ttk.Frame):
                 self.game_label.configure(text=f'✓ {self.game.folder}', foreground='#070')
                 self.save()
         else:
-            self.game_label.configure(text='Choisissez le dossier du jeu.', foreground='#555')
+            self.game_label.configure(text=tr('Choisissez le dossier du jeu.'), foreground='#555')
         self.fill()
 
     # --- liste ---
@@ -174,7 +175,7 @@ class App(ttk.Frame):
             i = self.shown.index(keep)
             self.listbox.selection_set(i)
             self.listbox.see(i)
-        self.say(f'{len(changed)} remplacé(s)' if changed else 'Aucun autocollant remplacé.')
+        self.say(tr('{n} remplacé(s)', n=len(changed)) if changed else tr('Aucun autocollant remplacé.'))
         self.show()
 
     def selected(self):
@@ -207,7 +208,7 @@ class App(ttk.Frame):
         for key in self.views:
             self.picture(key, None)
         if not short:
-            self.name_label.configure(text='Choisissez un autocollant dans la liste.')
+            self.name_label.configure(text=tr('Choisissez un autocollant dans la liste.'))
             self.size_label.configure(text='')
             self.set_buttons(None)
             return
@@ -223,12 +224,12 @@ class App(ttk.Frame):
             if ico:
                 self.picture('icon', core.texture.to_image(self.game.current(ico)))
             elif not short.startswith(core.ICON_TAG):
-                self.picture('icon', "pas d'icône connue")
+                self.picture('icon', tr("pas d'icône connue"))
         except (ValueError, OSError) as error:
-            self.size_label.configure(text=f'Illisible : {error}')
+            self.size_label.configure(text=tr('Illisible : {error}', error=error))
             self.set_buttons(None)
             return
-        self.size_label.configure(text=f'{w} × {h} pixels' + ('' if ok else ' — format non géré, pas modifiable'))
+        self.size_label.configure(text=tr('{w} × {h} pixels', w=w, h=h) + ('' if ok else tr(' — format non géré, pas modifiable')))
         self.set_buttons(short if ok else None)
 
     def set_buttons(self, short):
@@ -245,13 +246,14 @@ class App(ttk.Frame):
 
     def warn_running(self):
         return not core.game_running() or messagebox.askokcancel(
-            TITLE, 'Le jeu est ouvert : le changement ne se verra qu\'au prochain lancement. Continuer ?')
+            TITLE, tr("Le jeu est ouvert : le changement ne se verra qu'au prochain lancement. Continuer ?"))
 
     def replace(self):
         short = self.selected()
         if not short:
             return
-        path = filedialog.askopenfilename(title=f'Image pour {short}', filetypes=IMAGES)
+        path = filedialog.askopenfilename(title=tr('Image pour {name}', name=short),
+                                          filetypes=[(tr(label), pattern) for label, pattern in IMAGES])
         if not path or not self.warn_running():
             return
         self.busy(True)
@@ -260,15 +262,16 @@ class App(ttk.Frame):
                 self.game.replace(short, core.texture.cut_out(img) if self.cutout.get() else img,
                                   icon=self.with_icon.get())
         except (ValueError, OSError) as error:
-            messagebox.showerror(TITLE, f'Impossible de remplacer {short} : {error}')
+            messagebox.showerror(TITLE, tr('Impossible de remplacer {name} : {error}', name=short, error=error))
             return
         finally:
             self.busy(False)
         self.fill()
-        how = ' (détourée)' if self.cutout.get() else ''
+        how = tr(' (détourée)') if self.cutout.get() else ''
         if self.with_icon.get() and self.game.icon(short):
-            how += ', icône du menu aussi'
-        self.say(f'{short} remplacé par {Path(path).name}{how}. Relancez le jeu pour le voir.')
+            how += tr(', icône du menu aussi')
+        self.say(tr('{name} remplacé par {image}{how}. Relancez le jeu pour le voir.', name=short,
+                    image=Path(path).name, how=how))
 
     def restore(self):
         short = self.selected()
@@ -277,39 +280,39 @@ class App(ttk.Frame):
         try:
             self.game.restore(short)
         except OSError as error:
-            messagebox.showerror(TITLE, f'Impossible de remettre {short} : {error}')
+            messagebox.showerror(TITLE, tr('Impossible de remettre {name} : {error}', name=short, error=error))
             return
         self.fill()
-        self.say(f"{short} remis d'origine.")
+        self.say(tr("{name} remis d'origine.", name=short))
 
     def restore_all(self):
         if not self.game or not self.game.changed():
             return
-        if not messagebox.askokcancel(TITLE, "Remettre tous les autocollants d'origine ? "
-                                             f'(supprime {core.OURS} du dossier archives)'):
+        if not messagebox.askokcancel(TITLE, tr("Remettre tous les autocollants d'origine ? (supprime {file} du "
+                                                "dossier archives)", file=core.OURS)):
             return
         try:
             self.game.restore_all()
         except (OSError, ValueError) as error:
-            messagebox.showerror(TITLE, f'Impossible de supprimer {core.OURS} : {error}')
+            messagebox.showerror(TITLE, tr('Impossible de supprimer {file} : {error}', file=core.OURS, error=error))
             return
         self.fill()
-        self.say("Tout est remis d'origine.")
+        self.say(tr("Tout est remis d'origine."))
 
     def export(self):
         short = self.selected()
         if not short:
             return
-        path = filedialog.asksaveasfilename(title='Enregistrer en PNG', defaultextension='.png',
+        path = filedialog.asksaveasfilename(title=tr('Enregistrer en PNG'), defaultextension='.png',
                                             initialfile=f'{short}.png', filetypes=[('PNG', '*.png')])
         if not path:
             return
         try:
             core.texture.to_image(self.game.current(short)).save(path)
         except (ValueError, OSError) as error:
-            messagebox.showerror(TITLE, f"Impossible d'enregistrer : {error}")
+            messagebox.showerror(TITLE, tr("Impossible d'enregistrer : {error}", error=error))
             return
-        self.say(f'Enregistré : {path}')
+        self.say(tr('Enregistré : {path}', path=path))
 
     def save(self):
         values = {'folder': self.folder.get().strip(), 'cutout': self.cutout.get(), 'icon': self.with_icon.get()}

@@ -11,6 +11,7 @@ Le Mod Kit
 CTRNF-ModKit.exe réunit tous les mods dans une seule fenêtre : choisir une fois le dossier du port, activer les mods
 voulus (un onglet par mod), voir les fichiers qu'ils ont posés, tout désinstaller d'un clic, puis « Lancer le jeu »,
 qui ouvre le launcher officiel du port. En cas de plantage du jeu, le kit affiche un rapport lisible à copier.
+Le kit est en français ou en anglais (liste « Langue » en haut à droite).
 Code source : dossier modkit.
 
 Les mods
@@ -23,6 +24,10 @@ Les mods
   Programme : CTRNF-Stickers.exe. Mode d'emploi : autocollants\README.txt.
 - Autosplitter LiveSplit, version ALPHA (dossier autosplitter) : coupe le chrono tout seul pendant le mode
   Aventure. Tout début de développement. Mode d'emploi : autosplitter\README.txt.
+- Confort (onglet du Mod Kit) : les options de confort du randomizer sur le jeu d'origine, sans graine (cible des
+  reliques par palier, réserve de boost, podiums rapides, indices d'Aku Aku), et « Recommencer / Continuer » à la
+  fin de chaque course relique (gagnée ou perdue), pour retenter un meilleur palier sans repasser par le hub.
+  Partie et sauvegardes inchangées.
 Les programmes de chaque mod restent disponibles seuls, mais le Mod Kit les contient tous.
 
 Télécharger
@@ -38,7 +43,13 @@ Les mods sont faits pour aller ensemble. Aucun ne modifie les fichiers du jeu : 
 archives dans le dossier archives du jeu, et elles ne se chevauchent pas :
 - autocollants : archives\update3.pak ;
 - randomizer : archives\update4.pak (mini-carte des reliques) et archives\update_hub3.pak (podiums rapides),
-  plus patches\Randomizer.xml dans le dossier du port.
+  plus patches\Randomizer.xml dans le dossier du port ;
+- confort : patches\Confort.xml, archives\update_hub3.pak (podiums rapides) et archives\update5.pak
+  (Recommencer / Continuer). Quand Confort.xml est là, ses réglages remplacent ceux de confort de la graine
+  (aucune option posée deux fois).
+Le jeu lit update3.pak, update4.pak puis update5.pak dans l'ordre et s'arrête au premier absent : quand une place
+manque avant l'une de ces archives (pas d'autocollants, par exemple), le kit y pose un « bouche-trou » (un fichier
+du jeu recopié à l'identique, sans effet), retiré quand il ne sert plus.
 
 Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 

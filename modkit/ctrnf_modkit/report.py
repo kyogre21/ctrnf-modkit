@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 
 from . import __version__, launch
+from .i18n import tr
 from .modules import REGISTRY
 
 
@@ -30,32 +31,33 @@ def log(text):
 def context_lines(ctx):
     """Versions, port, mods activés, fichiers posés et graine : ce qu'il faut pour comprendre un problème."""
     info = ctx.port
-    lines = [f"CTRNF Mod Kit {__version__} ; " + ", ".join(f"{m.name} {m.version()}" for m in REGISTRY),
+    lines = [f"CTRNF Mod Kit {__version__} ; " + ", ".join(f"{tr(m.name)} {m.version()}" for m in REGISTRY),
              f"Windows : {platform.platform()}",
-             f"Port : {info.folder} ({info.version or 'version inconnue'})",
-             f"Dossier du jeu : {info.game_dir or 'inconnu'}",
-             "Mods activés : " + ", ".join(ctx.config.data.get("enabled", []))]
+             tr("Port : {folder} ({version})", folder=info.folder, version=info.version or tr("version inconnue")),
+             tr("Dossier du jeu : {folder}", folder=info.game_dir or tr("inconnu")),
+             tr("Mods activés : ") + ", ".join(ctx.config.data.get("enabled", []))]
     for m in REGISTRY:
         try:
             files = m.files(ctx)
         except Exception as error:  # le rapport doit sortir même si un mod est abîmé
-            lines.append(f"{m.name} : fichiers illisibles ({error})")
+            lines.append(tr("{name} : fichiers illisibles ({error})", name=tr(m.name), error=error))
             continue
         for f in files:
-            lines.append(f"  {f.path.name} : {f.state}")
+            lines.append(f"  {f.path.name} : {tr(f.state)}")
     xml = info.folder / "patches" / "Randomizer.xml" if info.folder else None
     if xml and xml.is_file():
         head = xml.read_text(encoding="utf-8", errors="replace")[:600]
         seed = re.search(r"graine (\d+)", head)
-        lines.append(f"Graine du randomizer : {seed.group(1) if seed else '?'}")
+        lines.append(tr("Graine du randomizer : {seed}", seed=seed.group(1) if seed else "?"))
     return lines
 
 
 def crash_text(ctx, rep):
-    lines = [f"Le jeu s'est arrêté : {rep['meaning']}", f"Lancé le {rep['started']}, journal : {rep['log']}", ""]
+    lines = [tr("Le jeu s'est arrêté : {why}", why=rep["meaning"]),
+             tr("Lancé le {when}, journal : {log}", when=rep["started"], log=rep["log"]), ""]
     lines += context_lines(ctx)
-    lines += ["", "Patchs appliqués : " + (", ".join(f"{n} ({w})" for n, w in rep["patches"]) or "aucun"),
-              "", f"Dernières lignes du journal ({len(rep['tail'])}) :"] + rep["tail"]
+    lines += ["", tr("Patchs appliqués : ") + (", ".join(f"{n} ({w})" for n, w in rep["patches"]) or tr("aucun")),
+              "", tr("Dernières lignes du journal ({n}) :", n=len(rep["tail"]))] + rep["tail"]
     return "\n".join(lines)
 
 
@@ -64,13 +66,13 @@ def hints(rep):
     out = []
     code = rep["code"]
     if code == 0xC0000005 and any("AI controlled racer" in line for line in rep["tail"][-5:]):
-        out.append("Plantage pendant la création des pilotes IA : défaut connu des anciennes versions du port, corrigé "
-                   "dans OCTR v0.5.1 ou plus récent.")
+        out.append(tr("Plantage pendant la création des pilotes IA : défaut connu des anciennes versions du port, "
+                      "corrigé dans OCTR v0.5.1 ou plus récent."))
     if code == 3:
-        out.append("Code 3 au démarrage : mettre à jour le port (OCTR v0.5.1 ou plus récent).")
+        out.append(tr("Code 3 au démarrage : mettre à jour le port (OCTR v0.5.1 ou plus récent)."))
     if code in (0xC0000005, 0xC0000374) and any("Randomizer" in n for n, _ in rep["patches"]):
-        out.append("Si le plantage revient au même endroit, refaites l'essai sans le randomizer (« Tout désinstaller » "
-                   "ou décochez-le) pour savoir s'il en est la cause, et envoyez ce rapport.")
+        out.append(tr("Si le plantage revient au même endroit, refaites l'essai sans le randomizer (« Tout "
+                      "désinstaller » ou décochez-le) pour savoir s'il en est la cause, et envoyez ce rapport."))
     return out
 
 
@@ -99,39 +101,40 @@ class ReportWindow(tk.Toplevel):
         buttons = ttk.Frame(self)
         buttons.grid(row=2, column=0, sticky="w", padx=10, pady=10)
         self.done = ttk.Label(buttons, text="")
-        ttk.Button(buttons, text="Copier le rapport", command=lambda: self.copy(text)).pack(side="left")
-        ttk.Button(buttons, text="Enregistrer…", command=lambda: self.save(text)).pack(side="left", padx=6)
+        ttk.Button(buttons, text=tr("Copier le rapport"), command=lambda: self.copy(text)).pack(side="left")
+        ttk.Button(buttons, text=tr("Enregistrer…"), command=lambda: self.save(text)).pack(side="left", padx=6)
         if log_file and Path(log_file).is_file() and hasattr(os, "startfile"):
-            ttk.Button(buttons, text="Ouvrir le journal", command=lambda: os.startfile(log_file)).pack(side="left")
-        ttk.Button(buttons, text="Fermer", command=self.destroy).pack(side="left", padx=6)
+            ttk.Button(buttons, text=tr("Ouvrir le journal"), command=lambda: os.startfile(log_file)).pack(side="left")
+        ttk.Button(buttons, text=tr("Fermer"), command=self.destroy).pack(side="left", padx=6)
         self.done.pack(side="left", padx=6)
 
     def copy(self, text):
         self.clipboard_clear()
         self.clipboard_append(text)
-        self.done.configure(text="Copié : collez-le dans votre message.")
+        self.done.configure(text=tr("Copié : collez-le dans votre message."))
 
     def save(self, text):
-        path = filedialog.asksaveasfilename(parent=self, title="Enregistrer le rapport", defaultextension=".txt",
-                                            initialfile="rapport_ctrnf.txt", filetypes=[("Texte", "*.txt")])
+        path = filedialog.asksaveasfilename(parent=self, title=tr("Enregistrer le rapport"), defaultextension=".txt",
+                                            initialfile=tr("rapport_ctrnf.txt"), filetypes=[(tr("Texte"), "*.txt")])
         if path:
             Path(path).write_text(text, encoding="utf-8")
-            self.done.configure(text=f"Enregistré : {path}")
+            self.done.configure(text=tr("Enregistré : {path}", path=path))
 
 
 def show_crash(master, ctx, rep):
     text = crash_text(ctx, rep)
     tips = hints(rep)
-    summary = f"Le jeu s'est arrêté : {rep['meaning']}." + ("\n" + "\n".join(tips) if tips else "")
-    return ReportWindow(master, "CTRNF Mod Kit — le jeu s'est arrêté", summary, text, rep["log"])
+    summary = tr("Le jeu s'est arrêté : {why}.", why=rep["meaning"]) + ("\n" + "\n".join(tips) if tips else "")
+    return ReportWindow(master, tr("CTRNF Mod Kit — le jeu s'est arrêté"), summary, text, rep["log"])
 
 
 def show_error(master, ctx, where, trace):
-    text = f"Erreur du kit ({where}) :\n{trace}\n"
+    text = tr("Erreur du kit ({where}) :", where=where) + f"\n{trace}\n"
     try:
         text += "\n" + "\n".join(context_lines(ctx))
     except Exception:
         pass
     log(text)
-    return ReportWindow(master, "CTRNF Mod Kit — erreur", "Une erreur est survenue dans le kit. Copiez le rapport et "
-                        f"envoyez-le (il est aussi gardé dans {log_path()}).", text, log_path())
+    return ReportWindow(master, tr("CTRNF Mod Kit — erreur"), tr("Une erreur est survenue dans le kit. Copiez le "
+                                                                 "rapport et envoyez-le (il est aussi gardé dans {log}).",
+                                                                 log=log_path()), text, log_path())

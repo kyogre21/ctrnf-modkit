@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from ctrnf_stickers import iga, texture
+from ctrnf_stickers import core, iga, names, texture
 
 
 def fake_texture(w, h, levels):
@@ -39,6 +39,32 @@ class Tests(unittest.TestCase):
             iga.write(files, path)
             with iga.Archive(path) as a:
                 self.assertEqual({n: a.read(n) for n in a.names}, files)
+
+    def test_filler_of_the_kit(self):
+        """update3.pak tient la place dans la chaîne update3/4/5 du jeu : un bouche-trou du kit n'est pas un de nos
+        autocollants, se remplace par le premier posé, et revient à la place de update3.pak quand update4.pak existe."""
+        sticker = names.STICKER[0] + 'flag' + names.STICKER[1]
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            iga.write({sticker: fake_texture(64, 64, 1)}, folder / 'stickers.pak')
+            iga.write({'autre': b'x'}, folder / 'update.pak')
+            iga.write({names.FILLER[1]: b'fichier du jeu'}, folder / 'update2.pak')
+            iga.write({names.FILLER[1]: b'fichier du jeu'}, folder / 'update3.pak')
+            game = core.Game(folder)
+            self.assertTrue(names.is_filler(folder / 'update3.pak') and not names.is_ours(folder / 'update3.pak'))
+            self.assertEqual(game.changed(), set())
+            game.restore_all()  # rien à nous : le bouche-trou reste
+            self.assertTrue(names.is_filler(folder / 'update3.pak'))
+            game.replace('flag', Image.new('RGBA', (8, 8), (255, 0, 0, 255)), icon=False)
+            self.assertTrue(names.is_ours(folder / 'update3.pak'))
+            self.assertEqual(game.changed(), {'flag'})
+            (folder / 'update4.pak').write_bytes(b'archive du kit')
+            game.restore_all()  # update4.pak derrière : un bouche-trou reprend la place
+            self.assertTrue(names.is_filler(folder / 'update3.pak'))
+            (folder / 'update4.pak').unlink()
+            game.replace('flag', Image.new('RGBA', (8, 8), (255, 0, 0, 255)), icon=False)
+            game.restore_all()
+            self.assertFalse((folder / 'update3.pak').exists())
 
     def test_texture(self):
         data = fake_texture(128, 64, 6)

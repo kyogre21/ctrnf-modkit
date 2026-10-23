@@ -11,8 +11,9 @@ import subprocess
 import sys
 
 from . import iga, texture
+from .i18n import tr
 from .icons import ICONS
-from .names import ARCHIVES, ICON, ICON_TAG, OURS, STICKER, is_ours  # noqa: F401
+from .names import ARCHIVES, FILLER, ICON, ICON_TAG, OURS, STICKER, is_filler, is_ours  # noqa: F401
 from .names import short as _short
 
 CONFIG = Path.home() / '.ctrnf_stickers.json'
@@ -35,8 +36,8 @@ def find_archives(folder):
     for c in candidates:
         if all((c / name).is_file() for name in ARCHIVES):
             return c
-    raise ValueError('archives du jeu introuvables (il faut le dossier qui contient stickers.pak, update.pak et '
-                     'update2.pak, le dossier du jeu au-dessus, ou le dossier du port)')
+    raise ValueError(tr('archives du jeu introuvables (il faut le dossier qui contient stickers.pak, update.pak et '
+                        'update2.pak, le dossier du jeu au-dessus, ou le dossier du port)'))
 
 
 class Game:
@@ -71,7 +72,7 @@ class Game:
     def _ours(self):
         """Contenu de update3.pak : {nom du fichier: contenu} (vide s'il n'existe pas)."""
         path = self.folder / OURS
-        if not path.is_file():
+        if not path.is_file() or is_filler(path):
             return {}
         with iga.Archive(path) as a:
             return {name: a.read(name) for name in a.names}
@@ -79,7 +80,7 @@ class Game:
     def changed(self):
         """Noms courts des autocollants remplacés."""
         path = self.folder / OURS
-        if not path.is_file():
+        if not path.is_file() or is_filler(path):
             return set()
         with iga.Archive(path) as a:
             return {s for s in map(_short, a.names) if s in self.textures}
@@ -114,11 +115,18 @@ class Game:
             self.restore_all()
 
     def restore_all(self):
-        """Supprime update3.pak, seulement s'il est à nous (ValueError sinon)."""
+        """Supprime update3.pak, seulement s'il est à nous (ValueError sinon). Si update4.pak existe (archive du Mod
+        Kit plus loin dans la chaîne), un bouche-trou prend sa place pour que le jeu continue de la lire."""
         path = self.folder / OURS
-        if path.exists() and not is_ours(path):
-            raise ValueError(f"{path} n'est pas une archive de cet outil : elle n'est pas supprimée")
-        path.unlink(missing_ok=True)
+        if not path.exists() or is_filler(path):
+            return
+        if not is_ours(path):
+            raise ValueError(tr("{file} n'est pas une archive de cet outil : elle n'est pas supprimée", file=path))
+        if (self.folder / 'update4.pak').exists():
+            with iga.Archive(self.folder / FILLER[0]) as a:
+                iga.write({FILLER[1]: a.read(FILLER[1])}, path)
+        else:
+            path.unlink()
 
 
 def game_running():

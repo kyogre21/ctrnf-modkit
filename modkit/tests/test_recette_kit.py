@@ -15,7 +15,7 @@ from unittest import mock
 
 from tests.fake import make_port
 from ctrnf_modkit import config, launch, port
-from ctrnf_modkit.modules import ABSENT, FOREIGN, PRESENT, REGISTRY, Autosplitter, Randomizer, Stickers
+from ctrnf_modkit.modules import ABSENT, FOREIGN, PRESENT, REGISTRY, Autosplitter, Comfort, Randomizer, Stickers
 
 REAL_PORT = Path(r"C:\Users\jimmy\Desktop\CTR-NitroFueled-PC-portable-windows\OCTR-NitroFueled-PC-portable")
 REAL_HOME = Path(os.path.expanduser("~"))
@@ -318,6 +318,9 @@ class ModulesRecette(Base):
         m = Randomizer()
         self.assertEqual({f.path.name: f.state for f in m.files(self.ctx)},
                          {"Randomizer.xml": PRESENT, "update4.pak": PRESENT, "update_hub3.pak": PRESENT})
+        # sans Confort.xml, l'archive des podiums est au randomizer (décocher Confort ne la propose pas au retrait)
+        self.assertEqual({f.path.name: f.state for f in Comfort().files(self.ctx)},
+                         {"Confort.xml": ABSENT, "update5.pak": ABSENT})
         self.assertEqual(m.status(self.ctx), "graine 77 installée")
         seeds = sorted(p.name for p in (self.folder / "graines_randomizer").iterdir())
         (self.folder / "patches" / "Autre.xml").write_text("<Patch/>", encoding="utf-8")
@@ -331,19 +334,39 @@ class ModulesRecette(Base):
         for name in port.ARCHIVES:
             self.assertTrue((self.archives / name).exists())
 
+    def test_podiums_a_confort_seulement_avec_confort_xml(self):
+        from ctrnf_rando import archives, comfort
+        self.real_xml()
+        podium = self.archives / "update_hub3.pak"
+        podium.write_bytes(archives.pak_bytes({archives.PODIUM.name: b"y"}))
+        comfort.install(self.folder, {"relic_targets": True, "fast_podiums": False})
+        podium.write_bytes(archives.pak_bytes({archives.PODIUM.name: b"y"}))
+        self.assertEqual({f.path.name: f.state for f in Comfort().files(self.ctx)},
+                         {"Confort.xml": PRESENT, "update_hub3.pak": PRESENT, "update5.pak": ABSENT})
+        self.assertEqual({f.path.name for f in Randomizer().files(self.ctx)}, {"Randomizer.xml", "update4.pak"})
+        self.assertEqual(Comfort().status(self.ctx), "2 option(s) installée(s)")  # reliques + archive des podiums
+        Randomizer().uninstall(self.ctx)  # le randomizer retiré : le confort et ses podiums restent
+        self.assertTrue(podium.exists() and (self.folder / "patches" / "Confort.xml").exists())
+        Comfort().uninstall(self.ctx)
+        self.assertFalse(podium.exists() or (self.folder / "patches" / "Confort.xml").exists())
+
     def test_fichiers_etrangers_jamais_supprimes(self):
         from ctrnf_rando import archives
         from ctrnf_stickers import iga
         xml = self.folder / "patches" / "Randomizer.xml"
         xml.write_text('<Patch><Metadata Name="Randomizer" Author="quelquun"/></Patch>', encoding="utf-8")
+        (self.folder / "patches" / "Confort.xml").write_text('<Patch><Metadata Name="Confort"/></Patch>',
+                                                            encoding="utf-8")
         (self.archives / "update4.pak").write_bytes(archives.pak_bytes({archives.MINIMAP.name: b"x", "b": b"y"}))
         (self.archives / "update_hub3.pak").write_bytes(b"pas une archive")
+        (self.archives / "update5.pak").write_bytes(b"pas une archive")
         iga.write({"textures/autre.igz": b"x"}, self.archives / "update3.pak")
         dest = self.base / "LiveSplit"
         dest.mkdir()
         (dest / "CTRNF.asl").write_text("// autre script\n", encoding="utf-8")
         self.ctx.config.data["modules"]["autosplitter"] = {"dest": str(dest)}
-        before = {p: p.read_bytes() for p in (xml, dest / "CTRNF.asl", *self.archives.iterdir())}
+        before = {p: p.read_bytes() for p in (xml, self.folder / "patches" / "Confort.xml", dest / "CTRNF.asl",
+                                               *self.archives.iterdir())}
         for m in REGISTRY:
             self.assertTrue(all(f.state == FOREIGN for f in m.files(self.ctx)), m.id)
             m.uninstall(self.ctx)
@@ -482,7 +505,7 @@ class WindowRecette(WindowBase):
         for m in REGISTRY:
             child = self.open(m.id)
             self.assertNotIsInstance(child, __import__("tkinter").ttk.Label, m.id)
-        self.assertEqual(self.root.title(), "CTRNF Mod Kit 0.2.0 — par kyogre21")
+        self.assertEqual(self.root.title(), "CTRNF Mod Kit 0.3.0 — par kyogre21")
         win.toggle(REGISTRY[2], False)
         self.assertEqual(win.notebook.tab(win.tabs["autosplitter"], "state"), "hidden")
         win.open_tab(REGISTRY[2])
@@ -490,8 +513,9 @@ class WindowRecette(WindowBase):
         win.toggle(REGISTRY[2], True)
         self.assertEqual(win.notebook.tab(win.tabs["autosplitter"], "state"), "normal")
         names = [win.notebook.tab(t, "text") for t in win.notebook.tabs()]
-        self.assertEqual(names, ["Accueil", "Randomizer", "Autocollants", "Autosplitter (alpha)", "À propos"])
-        self.assertEqual(self.saved()["enabled"], ["randomizer", "stickers", "autosplitter"])
+        self.assertEqual(names, ["Accueil", "Randomizer", "Autocollants", "Autosplitter (alpha)", "Confort",
+                               "À propos"])
+        self.assertEqual(self.saved()["enabled"], ["randomizer", "stickers", "autosplitter", "comfort"])
 
     def test_onglet_desactive_au_demarrage_et_onglet_casse(self):
         folder, _ = make_port(self.base)
@@ -500,7 +524,7 @@ class WindowRecette(WindowBase):
         with mock.patch.object(Autosplitter, "build_tab", side_effect=RuntimeError("cassé")):
             label = self.open("autosplitter")
         self.assertIn("erreur à l'ouverture", label.cget("text"))
-        self.assertEqual(self.root.title(), "CTRNF Mod Kit 0.2.0 — par kyogre21")
+        self.assertEqual(self.root.title(), "CTRNF Mod Kit 0.3.0 — par kyogre21")
 
     def test_autocollants_indisponibles(self):
         folder, _ = make_port(self.base)
@@ -834,6 +858,9 @@ class UninstallWindowRecette(WindowBase):
         self.box.askyesno.return_value = False
         win.toggle(REGISTRY[1], False)
         self.assertTrue((self.archives / "update3.pak").exists())
+        question = self.box.askyesno.call_args[0][1]  # dit quels fichiers, et ce que font Oui / Non
+        self.assertIn("update3.pak : autocollants remplacés", question)
+        self.assertIn("Oui : SUPPRIMER", question)
         win.toggle(REGISTRY[1], True)
         self.box.askyesno.return_value = True
         win.toggle(REGISTRY[1], False)

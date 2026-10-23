@@ -64,6 +64,13 @@ Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 
 Nouveautés
 ----------
+0.5.0
+- Corrigé : sans autocollants (pas d'archives\update3.pak), le jeu ne chargeait jamais la mini-carte des reliques
+  (archives\update4.pak), car il s'arrête à la première archive « updateN » absente. Un « bouche-trou » (un fichier
+  du jeu recopié à l'identique, sans effet) prend maintenant la place vide ; il est retiré quand il ne sert plus.
+- Dans le Mod Kit : l'interface existe aussi en anglais, et l'onglet Confort propose « Recommencer / Continuer » à la
+  fin de chaque course relique (archives\update5.pak).
+
 0.4.0
 - Onglet « Confort », nouvelle case (cochée par défaut) : en course aux reliques, la cible affichée sous le chrono
   commence au temps platine. Quand votre chrono le dépasse, elle passe au temps or, puis au temps saphir, avec
