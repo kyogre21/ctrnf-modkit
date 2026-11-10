@@ -3,7 +3,8 @@
 Le port applique les fichiers `patches/*.xml` au code du jeu (`eboot.bin` 01.21) avant de le lancer.
 Le patch ajoute trois détours, placés dans une zone vide à la fin du segment de code :
 
-1. Chargement d'un niveau (fonction 0x9b1fc0, qui exécute « loadmap <zone> ») : si la zone en cours
+1. Chargement d'un niveau (fonction 0x9b1fc0, qui exécute « loadmap <zone> » ; détour après son prologue, voir
+   LOADMAP_AT) : si la zone en cours
    est le hub et que la zone demandée est dans la table, le jeu charge le remplaçant. Depuis une
    course (« Recommencer ») ou depuis le menu principal, rien ne change.
 2. Récompenses (fonction 0x1076470 : trophée, reliques…) : si la zone récompensée est un remplaçant
@@ -60,6 +61,9 @@ from .data import CUP_PADS, CUPS
 EBOOT_BASE = 0x400000
 
 LOADMAP = 0x9b1fc0
+# Le saut est posé après le prologue de loadmap (14 octets) : OCTR 0.8.3+ pose le sien à l'entrée (mode en ligne) et
+# exige le prologue d'origine, sinon le jeu reste sur un écran noir. Son crochet revient ici, puis passe par le nôtre.
+LOADMAP_AT = LOADMAP + 0xe
 REWARD = 0x1076470
 REWARDED = 0x1037f30
 HUBNAME = 0x1037f90  # option « noms »
@@ -173,7 +177,7 @@ CODE1_BYTES = bytes.fromhex(
     "50515241504885ff0f8483000000488b0533de79004885c074778b80400d000083f81f776cb92a0100000fa3c173"
     "62488b05a23c78004885c07456488b80c00000004885c0744a488d15b201000031c9448a040a443a040875374584"
     "c07404ffc1ebed488d1596020000803a00742231c98a040a3a040f750b84c07410ffc183f94072ed4881c2800000"
-    "00ebdd488d7a4041585a5958554889e54156e9251f68fe")
+    "00ebdd488d7a4041585a59584c8b35fb6f4d00e9331f68fe")
 # Détour des récompenses (assemblé à CODE2).
 CODE2_BYTES = bytes.fromhex(
     "505152565741504151415241534885ff7476488b052fdd79004885c0746a8b804c0d000083f81f775fb92a010000"
@@ -317,10 +321,10 @@ CODE8_BYTES = bytes.fromhex(
 # Option « noms » : le détour du chargement commence par un appel à CODE3, qui renomme les
 # portails en arrivant au hub et remet les noms en le quittant (état en mémoire à STATE).
 CODE1_NOMS_BYTES = bytes.fromhex(
-    "e8fb9f000050515241504885ff0f8483000000488b052ede79004885c074778b80400d000083f81f776cb92a0100"
-    "000fa3c17362488b059d3c78004885c07456488b80c00000004885c0744a488d15ad01000031c9448a040a443a04"
-    "0875374584c07404ffc1ebed488d1591020000803a00742231c98a040a3a040f750b84c07410ffc183f94072ed48"
-    "81c280000000ebdd488d7a4041585a5958554889e54156e9201f68fe")
+    "4883ec08e8f79f00004883c40850515241504885ff0f8483000000488b0526de79004885c074778b80400d000083"
+    "f81f776cb92a0100000fa3c17362488b05953c78004885c07456488b80c00000004885c0744a488d15a501000031"
+    "c9448a040a443a040875374584c07404ffc1ebed488d1589020000803a00742231c98a040a3a040f750b84c07410"
+    "ffc183f94072ed4881c280000000ebdd488d7a4041585a59584c8b35ee6f4d00e9261f68fe")
 CODE3_BYTES = bytes.fromhex(
     "5051525657415041514152415353415441554989fc4d85e40f845d0100004c89e7488d35d861ffffe87e01000084"
     "c07539488b05a09c77004885c00f843a010000488bb8c00000004885ff0f842a010000488d35a861ffffe84e0100"
@@ -343,15 +347,15 @@ CODE5_BYTES = bytes.fromhex(
 CODE6_BYTES = bytes.fromhex(
     "5052833df7338b0000743e4d85f67439498b46104885c074308b401083f8407328488d15584fffff0fb6040285c0"
     "7419488d0440488d15d5338b00488d44c2f84883380074034889c65a58554889e541574156e9c0f8b0fe")
-# Sauts posés à l'entrée des trois fonctions (en écrasant 6, 8 et 8 octets d'instructions entières).
-JUMP_LOADMAP = bytes.fromhex("e93be0970190")
+# Sauts posés à l'entrée des fonctions (en écrasant des instructions entières ; loadmap : après son prologue).
+JUMP_LOADMAP = bytes.fromhex("e92de097019090")
 JUMP_REWARD = bytes.fromhex("e98b9c2b01909090")
 JUMP_REWARDED = bytes.fromhex("e9cb303001909090")
 JUMP_HUBNAME = bytes.fromhex("e96b323001909090")
 JUMP_BANNER = bytes.fromhex("e9eb064f01909090")
 # Code d'origine à l'entrée des trois fonctions : si le jeu n'est pas la version attendue, le port
 # ne trouve pas ces octets et ignore le patch au lieu de l'appliquer au mauvais endroit.
-SIG_LOADMAP = "55 48 89 e5 41 56 53 48 81 ec 30 01 00 00 4c 8b 35 c3 50 e5 01 48 89 fb 89 f1 48 85 db 49 8b 06"
+SIG_LOADMAP = "4c 8b 35 c3 50 e5 01 48 89 fb 89 f1 48 85 db 49 8b 06 48 89 45 e8 74 54 48 8d 3d 5f e6 31 01 31"
 SIG_REWARD = "55 48 89 e5 41 57 41 56 41 55 41 54 53 50 48 8b 05 c3 2f a5 01 49 89 fd 4c 8b 3d a1 d6 a6 01 41"
 SIG_REWARDED = "55 48 89 e5 41 57 41 56 41 54 53 48 8b 05 06 15 a9 01 49 89 fc 4c 8b 3d e4 bb aa 01 41 89 f6 48"
 SIG_HUBNAME = "55 48 89 e5 41 57 41 56 41 54 53 41 89 fe 48 8b 3d 5b a6 ab 01 49 89 f7 48 8d 35 61 0d dc 00 e8"
@@ -806,7 +810,7 @@ def patch_xml(plan, rename=False, rewards=None, comfort=True):
              + (_line(HUBMAP, hub_map(pairs), SIG_EMPTY) if rename else "") + _line(TABLE, data, SIG_EMPTY)
              + (_line(CODE3, CODE3_BYTES, SIG_EMPTY) if rename else "") + _line(CODE4, CODE4_BYTES, SIG_EMPTY)
              + (_line(CODE5, CODE5_BYTES, SIG_EMPTY) + _line(CODE6, CODE6_BYTES, SIG_EMPTY) if rename else "")
-             + _line(LOADMAP, JUMP_LOADMAP, SIG_LOADMAP) + _line(REWARD, JUMP_REWARD, SIG_REWARD)
+             + _line(LOADMAP_AT, JUMP_LOADMAP, SIG_LOADMAP) + _line(REWARD, JUMP_REWARD, SIG_REWARD)
              + _line(REWARDED, JUMP_REWARDED, SIG_REWARDED)
              + (_line(HUBNAME, JUMP_HUBNAME, SIG_HUBNAME) + _line(BANNER, JUMP_BANNER, SIG_BANNER)
                 if rename else ""))
@@ -850,7 +854,7 @@ def patch_xml(plan, rename=False, rewards=None, comfort=True):
 def signature_sites():
     """[(adresse, octets d'origine)] de toutes les écritures posées sur le code du jeu : le logiciel s'en sert pour
     vérifier que `eboot.elf` est bien la version attendue (CUSA13795 v1.21)."""
-    sites = [(LOADMAP, SIG_LOADMAP), (REWARD, SIG_REWARD), (REWARDED, SIG_REWARDED), (HUBNAME, SIG_HUBNAME),
+    sites = [(LOADMAP_AT, SIG_LOADMAP),(REWARD, SIG_REWARD), (REWARDED, SIG_REWARDED), (HUBNAME, SIG_HUBNAME),
              (BANNER, SIG_BANNER), (RECALC, SIG_RECALC), (WON_CALL, SIG_WON), (MODEL_CALL, SIG_MODEL),
              (GETALL, SIG_GETALL), (CUP_CALL, SIG_CUP), (PERCENT, SIG_PERCENT),
              (IGZ_FINISH, SIG_IGZ), (ROW_CALL, SIG_ROW), (ROW_MASK_AT, SIG_ROW_MASK), (KEY_CALL, SIG_KEY),

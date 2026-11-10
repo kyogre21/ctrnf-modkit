@@ -62,6 +62,12 @@ This repository contains no game files: you must own the game.
 
 What's new
 ----------
+0.5.1
+- Fixed: with the OCTR port v0.8.3 or newer, the game stayed on a black screen at launch (port log: "native
+  Online mode callback could not be installed"). The port now places its own hook at the start of the level
+  loading function and requires it to be untouched; the randomizer now places its hook just after. Generate a
+  new seed: a Randomizer.xml from an older version still blocks the game.
+
 0.5.0
 - Fixed: without stickers (no archives\update3.pak), the game never loaded the relic minimap (archives\update4.pak),
   because it stops at the first missing "updateN" archive. A "placeholder" (a game file copied unchanged, no effect)

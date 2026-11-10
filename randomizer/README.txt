@@ -64,6 +64,12 @@ Ce dépôt ne contient aucun fichier du jeu : il faut posséder le jeu.
 
 Nouveautés
 ----------
+0.5.1
+- Corrigé : avec le port OCTR v0.8.3 ou plus récent, le jeu restait sur un écran noir au lancement (journal du
+  port : « native Online mode callback could not be installed »). Le port pose maintenant son propre crochet au
+  début de la fonction de chargement des niveaux et exige qu'elle soit intacte ; le randomizer pose le sien juste
+  après. Il faut générer une nouvelle graine : un Randomizer.xml d'une version plus ancienne bloque toujours.
+
 0.5.0
 - Corrigé : sans autocollants (pas d'archives\update3.pak), le jeu ne chargeait jamais la mini-carte des reliques
   (archives\update4.pak), car il s'arrête à la première archive « updateN » absente. Un « bouche-trou » (un fichier
