@@ -26,7 +26,7 @@ def _read(p):
 
 
 def system_language():
-    """Première ouverture : français si Windows est en français, sinon anglais."""
+    """Première ouverture : français ou espagnol si Windows l'est, sinon anglais."""
     import locale
     try:
         code = locale.getlocale()[0] or ""
@@ -35,7 +35,10 @@ def system_language():
             code = locale.windows_locale.get(ctypes.windll.kernel32.GetUserDefaultUILanguage(), "")
     except Exception:
         code = ""
-    return "fr" if code.lower().startswith(("fr", "french")) else "en"
+    code = code.lower()
+    if code.startswith(("fr", "french")):
+        return "fr"
+    return "es" if code.startswith(("es", "spanish")) else "en"
 
 
 def migrate_legacy():

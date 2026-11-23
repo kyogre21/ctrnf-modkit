@@ -248,4 +248,6 @@ EN = {
     "code mal recopié (la lettre de contrôle ne correspond pas)": "code copied wrong (the check letter doesn't match)",
     "code fait avec une autre version du randomizer": "code made with another version of the randomizer",
     "code mal recopié": "code copied wrong",
+    "Le port appliquera aussi {names}, qui écrit aux mêmes endroits du jeu que ce mod : avec les deux, le jeu planterait. Rien n'est installé. Désactivez ce patch dans le launcher s'il le permet, ou gardez une version du port sans lui (OCTR v0.8.8 pour le « Pack Tacho » des v0.9), en attendant une mise à jour du mod.":
+        'The port will also apply {names}, which writes to the same places in the game as this mod: with both, the game would crash. Nothing is installed. Disable that patch in the launcher if it allows it, or keep a port version without it (OCTR v0.8.8 for the "Tacho Pack" of v0.9), until an update of the mod.',
 }

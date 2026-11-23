@@ -1,7 +1,7 @@
 CTR Nitro-Fueled Mod Kit (kyogre21)
 ===================================
 
-(Version française : README.txt. The programs themselves are in French; each mod's README_EN.txt gives button and
+(Version française : README.txt. Versión en español: README_ES.txt. The standalone programs are in French; each mod's README_EN.txt gives button and
 option names in French with their English meaning.)
 
 kyogre21's mods for Crash Team Racing Nitro-Fueled on PC (CTR-NitroFueled-PC / OCTR-NitroFueled-PC port, game
@@ -12,7 +12,7 @@ The Mod Kit
 CTRNF-ModKit.exe gathers every mod in one window: pick the port folder once, enable the mods you want (one tab per
 mod), see the files they placed, uninstall everything in one click, then "Lancer le jeu" (Launch the game), which
 opens the port's official launcher. If the game crashes, the kit shows a readable report to copy.
-The kit is in English or French ("Language" list at the top right).
+The kit is in English, French or Spanish ("Language" list at the top right).
 Source code: modkit folder.
 
 The mods
@@ -34,6 +34,13 @@ Download
 The ready-to-run programs (nothing to install) are on the "Releases" page:
 https://github.com/kyogre21/ctrnf-modkit/releases/latest
 Windows may show "Windows protected your PC" (unsigned program): click "More info" then "Run anyway".
+
+Warning: OCTR port v0.9 or newer
+--------------------------------
+Since v0.9.0 (2026-11-20), the port always applies the "Tacho Pack", which uses the same areas of the executable as
+the randomizer: with a randomizer seed, the game would crash. Keep the port on v0.8.8 until a randomizer update (the
+Mod Kit refuses to install a seed on a v0.9 port). The Comfort tab options don't use these areas (not yet tried in
+game with v0.9).
 
 Using several mods together
 ---------------------------

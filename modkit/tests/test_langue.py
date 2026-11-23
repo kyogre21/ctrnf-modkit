@@ -61,12 +61,13 @@ class TranslationTest(unittest.TestCase):
     def test_nothing_missing(self):
         import importlib
         for package, folder in PACKAGES.items():
-            en = importlib.import_module(f"{package}.lang_en").EN
             wanted = keys(folder) | set(EXTRA[package])
-            missing = sorted(wanted - en.keys())
-            self.assertEqual(missing, [], package)
-            for fr, english in en.items():
-                self.assertEqual(fields(fr), fields(english), f"{package} : {fr!r}")
+            for module, table in (("lang_en", "EN"), ("lang_es", "ES")):     # espagnol : demandé sur GitHub (23/10)
+                done = getattr(importlib.import_module(f"{package}.{module}"), table)
+                missing = sorted(wanted - done.keys())
+                self.assertEqual(missing, [], f"{package} {module}")
+                for fr, translated in done.items():
+                    self.assertEqual(fields(fr), fields(translated), f"{package} {module} : {fr!r}")
 
     def test_modules_and_tables(self):
         from ctrnf_modkit import launch
@@ -85,6 +86,10 @@ class TranslationTest(unittest.TestCase):
             self.assertEqual((rando.current, stickers.current), ("en", "en"))  # le kit règle les onglets des mods
             self.assertEqual(i18n.tr("{n} Ko", n=3), "3 KB")
             self.assertEqual(i18n.tr("texte inconnu"), "texte inconnu")    # pas traduit : reste tel quel
+            i18n.set_language("es")
+            self.assertEqual((rando.current, stickers.current), ("es", "es"))
+            self.assertEqual(i18n.tr("Accueil"), "Inicio")
+            self.assertEqual(rando.tr("Graine :"), "Semilla:")
             i18n.set_language("xx")
             self.assertEqual(i18n.current, "fr")
             self.assertEqual(i18n.tr("{n} Ko", n=3), "3 Ko")
@@ -95,6 +100,7 @@ class TranslationTest(unittest.TestCase):
         try:
             import tkinter as tk
             root = tk.Tk()
+            root.withdraw()  # tests cachés : aucune fenêtre au premier plan pendant que le joueur utilise son PC
         except Exception as error:
             self.skipTest(f"pas de fenêtre possible : {error}")
         tmp = tempfile.TemporaryDirectory()
@@ -105,7 +111,8 @@ class TranslationTest(unittest.TestCase):
             conf.data["port"] = str(folder)
             conf.data["language"] = "fr"
             win = window.KitWindow(root, conf)
-            for language, home, title in (("English", "Home", "by kyogre21"), ("Français", "Accueil", "par kyogre21")):
+            for language, home, title in (("English", "Home", "by kyogre21"), ("Español", "Inicio", "por kyogre21"),
+                                          ("Français", "Accueil", "par kyogre21")):
                 win.language.set(language)
                 win.change_language()
                 root.update()
@@ -121,7 +128,7 @@ class TranslationTest(unittest.TestCase):
                     children = win.tabs[m.id].winfo_children()
                     self.assertNotIsInstance(children[0], tk.ttk.Label, f"{language} {m.id}")
                 self.assertEqual(config.Config(Path(tmp.name) / "kit.json").data["language"],
-                                 "en" if language == "English" else "fr")
+                                 {"English": "en", "Español": "es", "Français": "fr"}[language])
         finally:
             i18n.set_language("fr")
             root.destroy()

@@ -303,4 +303,6 @@ EN = {
     "CTRNF.asl copié : {file}": "CTRNF.asl copied: {file}",
     "✗ CTRNF.asl introuvable dans le kit.": "✗ CTRNF.asl not found in the kit.",
     "Version du script : {version} ; {state}.": "Script version: {version}; {state}.",
+    "{mod} : le port applique maintenant {names}, qui écrit aux mêmes endroits du jeu. Le jeu planterait au lancement : désinstallez {mod} (ou revenez à l'ancienne version du port) en attendant une mise à jour du kit.":
+        '{mod}: the port now applies {names}, which writes to the same places in the game. The game would crash at launch: uninstall {mod} (or go back to the previous port version) until a kit update.',
 }

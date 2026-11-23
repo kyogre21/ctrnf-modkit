@@ -6,7 +6,7 @@ l'installation, celles d'un Randomizer.xml déjà posé sont retirées, pour qu'
 from pathlib import Path
 import re
 
-from . import __version__, archives
+from . import __version__, archives, conflicts
 from .i18n import tr
 from .patch import COMFORT, comfort_addresses, comfort_xml
 
@@ -76,7 +76,15 @@ def install(port, settings):
     if path.exists() and not is_ours(path):
         raise ValueError(tr("{file} existe et n'est pas un patch du kit : rien n'est écrit", file=path))
     notes = []
-    _write(path, comfort_xml(settings, __version__))
+    xml = comfort_xml(settings, __version__)
+    found = conflicts.conflicts(port, xml)    # un autre patch du port aux mêmes adresses : le jeu planterait
+    if found:
+        raise ValueError(tr('Le port appliquera aussi {names}, qui écrit aux mêmes endroits du jeu que ce mod : '
+                            "avec les deux, le jeu planterait. Rien n'est installé. Désactivez ce patch dans le "
+                            "launcher s'il le permet, ou gardez une version du port sans lui (OCTR v0.8.8 pour le "
+                            '« Pack Tacho » des v0.9), en attendant une mise à jour du mod.',
+                            names=conflicts.describe(port, found)))
+    _write(path, xml)
     chosen = [k for k in COMFORT if settings.get(k)]
     notes.append(tr("{file} posé ({n} option(s) dans le patch)", file=NAME, n=len(chosen)))
     rando = path.parent / RANDOMIZER

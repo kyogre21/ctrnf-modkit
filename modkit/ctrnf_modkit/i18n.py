@@ -1,8 +1,8 @@
 """Langue de l'interface. Les textes restent écrits en français dans le code ; tr() rend leur traduction anglaise
-(lang_en.py) quand l'anglais est choisi. Le kit règle aussi la langue des onglets du randomizer et des autocollants,
-qui ont leur propre tr()."""
+(lang_en.py) ou espagnole (lang_es.py, demandée sur GitHub le 23/10/2026) quand cette langue est choisie. Le kit règle
+aussi la langue des onglets du randomizer et des autocollants, qui ont leur propre tr()."""
 
-LANGUAGES = {"fr": "Français", "en": "English"}
+LANGUAGES = {"fr": "Français", "en": "English", "es": "Español"}
 current = "fr"
 
 
@@ -23,10 +23,13 @@ def set_language(code):
 
 def tr(text, **values):
     """`text` dans la langue choisie ; les {champs} sont remplis avec `values`."""
-    if current == "en":
-        try:
-            from .lang_en import EN
-        except ImportError:  # traduction absente : on reste en français plutôt que de bloquer la fenêtre
-            EN = {}
-        text = EN.get(text, text)
+    table = {}
+    try:  # traduction absente : on reste en français plutôt que de bloquer la fenêtre
+        if current == "en":
+            from .lang_en import EN as table
+        elif current == "es":
+            from .lang_es import ES as table
+    except ImportError:
+        table = {}
+    text = table.get(text, text)
     return text.format(**values) if values else text

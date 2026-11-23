@@ -85,6 +85,24 @@ class Module:
         raise NotImplementedError
 
 
+def conflict_warnings(ctx, xml, mod):
+    """Notre patch posé (`xml` : ligne de self.files) et un autre patch du port aux mêmes adresses : le port a pu être
+    mis à jour depuis (OCTR v0.9 et son « Pack Tacho », 20/11/2026). Le jeu planterait au lancement : on le dit."""
+    if not (xml and xml.state == PRESENT and ctx.port.folder):
+        return []
+    from ctrnf_rando import conflicts
+    try:
+        found = conflicts.conflicts(ctx.port.folder, xml.path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return []
+    if not found:
+        return []
+    return [tr('{mod} : le port applique maintenant {names}, qui écrit aux mêmes endroits du jeu. Le jeu '
+               "planterait au lancement : désinstallez {mod} (ou revenez à l'ancienne version du port) en "
+               'attendant une mise à jour du kit.',
+               mod=tr(mod), names=conflicts.describe(ctx.port.folder, found))]
+
+
 class Randomizer(Module):
     id, name, package = "randomizer", "Randomizer", "ctrnf_rando"
     description = "Mélange le mode Aventure (circuits, récompenses, coupes, conditions, portails), toujours finissable."
@@ -135,6 +153,7 @@ class Randomizer(Module):
         if xml and xml.state == ABSENT and orphans:
             out.append(tr("Archives du randomizer sans graine installée ({files}) : faites « Tout désinstaller » "
                           "ou générez une graine.", files=", ".join(orphans)))
+        out += conflict_warnings(ctx, xml, self.name)
         patches_json = ctx.port.folder / "patches.json" if ctx.port.folder else None
         if xml and xml.state == PRESENT and "Randomizer.xml/Randomizer" in disabled_patches(ctx):
             out.append(tr("Le patch « Randomizer » est désactivé dans l'onglet des patchs du launcher : la graine "
@@ -293,6 +312,9 @@ class Comfort(Module):
     def warnings(self, ctx):
         files = {f.path.name: f for f in self.files(ctx)}
         xml = files.get("Confort.xml")
+        found = conflict_warnings(ctx, xml, self.name)
+        if found:
+            return found
         if xml and xml.state == PRESENT and "Confort.xml/Confort" in disabled_patches(ctx):
             return [tr("Le patch « Confort » est désactivé dans l'onglet des patchs du launcher : les options de "
                        "confort ne seront pas appliquées.")]

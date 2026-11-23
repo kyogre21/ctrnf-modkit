@@ -426,6 +426,7 @@ class WindowBase(Base):
         try:
             import tkinter as tk
             self.root = tk.Tk()
+            self.root.withdraw()  # tests cachés : aucune fenêtre au premier plan
         except Exception as error:
             self.skipTest(f"pas de fenêtre possible : {error}")
         from ctrnf_modkit import window
@@ -505,7 +506,7 @@ class WindowRecette(WindowBase):
         for m in REGISTRY:
             child = self.open(m.id)
             self.assertNotIsInstance(child, __import__("tkinter").ttk.Label, m.id)
-        self.assertEqual(self.root.title(), "CTRNF Mod Kit 0.3.1 — par kyogre21")
+        self.assertEqual(self.root.title(), "CTRNF Mod Kit 0.3.2 — par kyogre21")
         win.toggle(REGISTRY[2], False)
         self.assertEqual(win.notebook.tab(win.tabs["autosplitter"], "state"), "hidden")
         win.open_tab(REGISTRY[2])
@@ -524,7 +525,7 @@ class WindowRecette(WindowBase):
         with mock.patch.object(Autosplitter, "build_tab", side_effect=RuntimeError("cassé")):
             label = self.open("autosplitter")
         self.assertIn("erreur à l'ouverture", label.cget("text"))
-        self.assertEqual(self.root.title(), "CTRNF Mod Kit 0.3.1 — par kyogre21")
+        self.assertEqual(self.root.title(), "CTRNF Mod Kit 0.3.2 — par kyogre21")
 
     def test_autocollants_indisponibles(self):
         folder, _ = make_port(self.base)

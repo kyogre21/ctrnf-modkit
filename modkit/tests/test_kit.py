@@ -245,6 +245,7 @@ class WindowTest(unittest.TestCase):
         try:
             import tkinter as tk
             root = tk.Tk()
+            root.withdraw()  # tests cachés : aucune fenêtre au premier plan pendant que le joueur utilise son PC
         except Exception as error:
             self.skipTest(f"pas de fenêtre possible : {error}")
         tmp = tempfile.TemporaryDirectory()

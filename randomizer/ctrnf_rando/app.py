@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from . import __version__
+from . import conflicts, __version__
 from .generator import generate, spoiler
 from . import archives, comfort
 from .i18n import tr
@@ -85,6 +85,13 @@ def install(seed, settings, port, rename=True):
     rows = patch_rows(plan["rewards"]) if plan.get("rewards") else None
     separate = comfort.present(port)  # Confort.xml (onglet Confort du kit) s'occupe du confort
     xml = patch_xml(plan, rename=rename, rewards=rows, comfort=not separate)
+    found = conflicts.conflicts(port, xml)    # un autre patch du port aux mêmes adresses : le jeu planterait
+    if found:
+        raise ValueError(tr('Le port appliquera aussi {names}, qui écrit aux mêmes endroits du jeu que ce mod : '
+                            "avec les deux, le jeu planterait. Rien n'est installé. Désactivez ce patch dans le "
+                            "launcher s'il le permet, ou gardez une version du port sans lui (OCTR v0.8.8 pour le "
+                            '« Pack Tacho » des v0.9), en attendant une mise à jour du mod.',
+                            names=conflicts.describe(port, found)))
     out = port / SEEDS_FOLDER
     out.mkdir(parents=True, exist_ok=True)
     (out / f"graine_{seed}.json").write_text(json.dumps(plan, indent=2), encoding="utf-8")

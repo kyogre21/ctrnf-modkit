@@ -494,7 +494,8 @@ def selftest(out):
     lines = []
     for name in ("ctrnf_rando.gui", "ctrnf_rando.share", "ctrnf_rando.relic_menu", "ctrnf_rando.igz",
                  "ctrnf_stickers.gui", "ctrnf_stickers.names", "ctrnf_modkit.lang_en", "ctrnf_rando.lang_en",
-                 "ctrnf_stickers.lang_en", "numpy", "PIL"):
+                 "ctrnf_stickers.lang_en", "ctrnf_modkit.lang_es", "ctrnf_rando.lang_es", "ctrnf_stickers.lang_es",
+                 "numpy", "PIL"):
         try:
             importlib.import_module(name)
             lines.append(f"OK {name}")
