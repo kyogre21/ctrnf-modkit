@@ -36,12 +36,13 @@ https://github.com/kyogre21/ctrnf-modkit/releases/latest
 Windows puede mostrar «Windows protegió su PC» (programa sin firmar): haz clic en «Más información» y luego en
 «Ejecutar de todas formas».
 
-¡Atención! Port OCTR v0.9 o más reciente
------------------------------------------
-Desde la v0.9.0 (20/11/2026), el port aplica siempre el «Pack Tacho», que ocupa las mismas zonas del ejecutable que
-el randomizer: con una semilla del randomizer, el juego se colgaría. Mantén el port en v0.8.8 hasta una
-actualización del randomizer (el Mod Kit se niega a colocar una semilla en un port v0.9). Las opciones de la pestaña
-Comodidad no usan esas zonas (todavía no se han probado en el juego con la v0.9).
+Port OCTR v0.9 o más reciente
+-----------------------------
+Desde la v0.9.0 (20/11/2026), el port aplica siempre el «Pack Tacho». El Mod Kit 0.3.3 (Randomizer 0.5.3) coloca su
+código fuera de las zonas del Pack Tacho: el randomizer funciona en la v0.9 (probado en el juego con la v0.9.4) igual
+que en la v0.8.8. Las versiones anteriores del randomizer cuelgan el juego en la v0.9: actualiza el kit y vuelve a
+colocar una semilla. Antes de colocar una semilla, el kit sigue comprobando que ningún otro parche escribe en los
+mismos sitios.
 
 Usar varios mods juntos
 -----------------------

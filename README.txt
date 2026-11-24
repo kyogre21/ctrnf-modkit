@@ -37,12 +37,13 @@ https://github.com/kyogre21/ctrnf-modkit/releases/latest
 Windows peut afficher « Windows a protégé votre ordinateur » (programme non signé) : cliquer sur
 « Informations complémentaires » puis « Exécuter quand même ».
 
-Attention : port OCTR v0.9 ou plus récent
------------------------------------------
-Depuis la v0.9.0 (20/11/2026), le port applique toujours le « Pack Tacho », qui occupe les mêmes zones de
-l'exécutable que le randomizer : avec une graine du randomizer, le jeu planterait. Gardez le port en v0.8.8 en
-attendant une mise à jour du randomizer (le Mod Kit refuse de poser une graine sur un port v0.9). Les options de
-l'onglet Confort ne touchent pas à ces zones (pas encore essayées en jeu avec la v0.9).
+Port OCTR v0.9 ou plus récent
+-----------------------------
+Depuis la v0.9.0 (20/11/2026), le port applique toujours le « Pack Tacho ». Le Mod Kit 0.3.3 (Randomizer 0.5.3)
+place son code hors des zones du Pack Tacho : le randomizer fonctionne sur la v0.9 (essayé en jeu sur la v0.9.4)
+comme sur la v0.8.8. Les versions plus anciennes du randomizer font planter le jeu sur la v0.9 : mettez le kit à jour,
+puis reposez une graine. Le kit vérifie toujours, avant de poser une graine, qu'aucun autre patch n'écrit aux mêmes
+endroits.
 
 Utiliser plusieurs mods ensemble
 --------------------------------

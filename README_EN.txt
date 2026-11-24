@@ -35,12 +35,12 @@ The ready-to-run programs (nothing to install) are on the "Releases" page:
 https://github.com/kyogre21/ctrnf-modkit/releases/latest
 Windows may show "Windows protected your PC" (unsigned program): click "More info" then "Run anyway".
 
-Warning: OCTR port v0.9 or newer
---------------------------------
-Since v0.9.0 (2026-11-20), the port always applies the "Tacho Pack", which uses the same areas of the executable as
-the randomizer: with a randomizer seed, the game would crash. Keep the port on v0.8.8 until a randomizer update (the
-Mod Kit refuses to install a seed on a v0.9 port). The Comfort tab options don't use these areas (not yet tried in
-game with v0.9).
+OCTR port v0.9 or newer
+-----------------------
+Since v0.9.0 (2026-11-20), the port always applies the "Tacho Pack". Mod Kit 0.3.3 (Randomizer 0.5.3) puts its code
+outside the Tacho Pack areas: the randomizer works on v0.9 (tried in game on v0.9.4) as well as on v0.8.8. Older
+randomizer versions crash the game on v0.9: update the kit, then install a seed again. Before installing a seed, the
+kit still checks that no other patch writes to the same places.
 
 Using several mods together
 ---------------------------
